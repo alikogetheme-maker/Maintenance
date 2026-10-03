@@ -1,0 +1,890 @@
+<title>Guide Maintenance SAP B1</title>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : sommaire collant à gauche (bureau), colonne de lecture unique ; écrans SAP reproduits dans des cadres défilables. Même charte que le guide Petty Cash, bleu acier pour la maintenance. */
+:root {
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --fg: #1c242b;
+  --muted: #586572;
+  --line: #d6dee5;
+  --accent: #1d5c86;
+  --accent-soft: #e2edf5;
+  --warn: #9a5b00;
+  --warn-soft: #fbf0dc;
+  --bad: #a3302a;
+  --bad-soft: #f8e4e2;
+  --ok: #2b6e43;
+  --code-bg: #edf1f4;
+  --f-display: "Bitter", Georgia, "Times New Roman", serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+
+  /* Reproductions d'écran SAP : couleurs fixes (un écran SAP reste clair quel que soit le thème) */
+  --sap-win: #eef1f4;
+  --sap-title: #dde3e9;
+  --sap-title-fg: #1e2a36;
+  --sap-border: #8e9caa;
+  --sap-fg: #222a31;
+  --sap-field: #ffffff;
+  --sap-field-border: #a7b4c1;
+  --sap-disabled: #e3e7eb;
+  --sap-disabled-fg: #4b5560;
+  --sap-head: #d5dde5;
+  --sap-row-alt: #f5f7f9;
+  --sap-sel: #fff1c2;
+  --sap-btn-top: #ffe9a8;
+  --sap-btn-bot: #f4c24c;
+  --sap-btn-border: #c3962f;
+  --sap-btn-off: #e6e6e6;
+  --sap-btn-off-fg: #9aa0a6;
+  --sap-pin: #c0392b;
+  --sap-link: #e08a00;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161b; --surface: #182029; --fg: #e2e9ef; --muted: #9eadba; --line: #2b3742;
+    --accent: #7db7df; --accent-soft: #1b2c3a; --warn: #e3b25e; --warn-soft: #33291a;
+    --bad: #ee8a82; --bad-soft: #3a2220; --ok: #79c995; --code-bg: #1f2933; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161b; --surface: #182029; --fg: #e2e9ef; --muted: #9eadba; --line: #2b3742;
+  --accent: #7db7df; --accent-soft: #1b2c3a; --warn: #e3b25e; --warn-soft: #33291a;
+  --bad: #ee8a82; --bad-soft: #3a2220; --ok: #79c995; --code-bg: #1f2933; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--f-body); font-size: 17px; line-height: 1.6;
+  padding-inline: 16px; padding-block: 0 64px;
+}
+.layout { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); gap: 0; } nav.toc { display: none; } }
+
+nav.toc { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; padding-top: 40px; font-size: 14.5px; max-height: 100vh; overflow-y: auto; }
+nav.toc p { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+nav.toc a { display: block; padding: 3px 10px; border-left: 2px solid var(--line); color: var(--muted); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); border-left-color: var(--accent); outline: none; }
+
+main { min-width: 0; max-width: 820px; }
+header.top { padding-top: 40px; padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+.eyebrow { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 42px); line-height: 1.15; margin: 6px 0 12px; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 26px; line-height: 1.25; margin: 56px 0 12px; text-wrap: balance; scroll-margin-top: 16px; }
+h3 { font-family: var(--f-display); font-weight: 500; font-size: 20px; margin: 32px 0 8px; text-wrap: balance; scroll-margin-top: 16px; }
+p, li { max-width: 70ch; }
+.lead { font-size: 19px; color: var(--muted); }
+a { color: var(--accent); }
+code, .mono { font-family: var(--f-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+.path { font-weight: 600; }
+.st { font-family: var(--f-mono); font-size: .82em; font-weight: 500; padding: 1px 6px; border-radius: 3px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+
+ol.steps { padding-left: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }
+ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 10px; }
+ol.steps > li::before { content: counter(s); font-family: var(--f-display); font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 50%; width: 28px; height: 28px; display: grid; place-items: center; font-size: 15px; margin-top: 1px; }
+
+.note { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 12px 16px; margin: 18px 0; }
+.note strong:first-child { display: block; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+.note.tip strong:first-child { color: var(--accent); }
+.note.warn { background: var(--warn-soft); border-color: transparent; }
+.note.warn strong:first-child { color: var(--warn); }
+.note.bad { background: var(--bad-soft); border-color: transparent; }
+.note.bad strong:first-child { color: var(--bad); }
+.note p { margin: 4px 0; }
+
+.table-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table.doc { border-collapse: collapse; width: 100%; font-size: 15.5px; }
+table.doc th, table.doc td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.doc th { font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+table.doc tr:last-child td { border-bottom: 0; }
+table.doc td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--f-mono); font-size: 14.5px; white-space: nowrap; }
+
+/* Cycle de vie */
+.cycle { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; margin: 20px 0; }
+@media (max-width: 700px) { .cycle { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.cycle div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.cycle b { display: block; font-family: var(--f-display); font-size: 16px; }
+.cycle span { font-size: 14px; color: var(--muted); }
+.cycle i { font-style: normal; font-family: var(--f-mono); font-size: 12px; color: var(--accent); font-weight: 500; }
+
+/* ---------- Reproductions d'écrans SAP B1 ---------- */
+figure.shot { margin: 22px 0 26px; }
+figure.shot .frame { overflow-x: auto; padding: 14px; background: var(--code-bg); border-radius: 8px; }
+figure.shot figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.win { position: relative; background: var(--sap-win); border: 1px solid var(--sap-border); box-shadow: 0 4px 14px rgba(20,30,40,.18); font-family: Tahoma, "Segoe UI", Arial, sans-serif; font-size: 11.5px; color: var(--sap-fg); margin: 0 auto; }
+.win .tb { height: 26px; background: var(--sap-title); color: var(--sap-title-fg); border-bottom: 1px solid var(--sap-border); display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-weight: bold; font-size: 12px; }
+.win .tb .x { display: flex; gap: 10px; font-weight: normal; color: #5c6875; }
+.win .body { position: relative; }
+.win .l, .win .f, .win .b, .win .m, .win .pin, .win .tab, .win .fr, .win .ck, .win .lk { position: absolute; }
+.win .l { height: 15px; line-height: 15px; white-space: nowrap; overflow: hidden; }
+.win .f { height: 15px; line-height: 13px; background: var(--sap-field); border: 1px solid var(--sap-field-border); padding: 0 3px; white-space: nowrap; overflow: hidden; }
+.win .f.off { background: var(--sap-disabled); color: var(--sap-disabled-fg); }
+.win .f.num { text-align: right; }
+.win .f.cmb { padding-right: 14px; }
+.win .f.cmb::after { content: "▾"; position: absolute; right: 3px; top: 0; color: #4f5d6a; }
+.win .f.focus { outline: 2px solid #f0a500; outline-offset: -1px; }
+.win .f.memo { white-space: normal; line-height: 14px; padding: 3px 4px; }
+.win .f.warnbar { background: #fff4d6; border-color: #e0c47a; color: #6b4a00; font-weight: bold; }
+.win .lk { width: 14px; height: 12px; color: var(--sap-link); font: bold 11px/12px Arial, sans-serif; text-align: center; }
+.win .ck { height: 15px; line-height: 15px; white-space: nowrap; padding-left: 17px; }
+.win .ck::before { content: ""; position: absolute; left: 0; top: 1px; width: 11px; height: 11px; border: 1px solid #7d8b98; background: #fff; }
+.win .ck.on::after { content: "✓"; position: absolute; left: 2px; top: -1px; font-size: 12px; font-weight: bold; color: #1e3d5c; }
+.win .ck.dim { color: var(--sap-disabled-fg); }
+.win .b { height: 19px; line-height: 17px; text-align: center; border: 1px solid var(--sap-btn-border); border-radius: 2px; background: linear-gradient(var(--sap-btn-top), var(--sap-btn-bot)); color: #222; white-space: nowrap; overflow: hidden; }
+.win .b.off { background: var(--sap-btn-off); border-color: #c4c4c4; color: var(--sap-btn-off-fg); }
+.win .tab { height: 19px; line-height: 17px; text-align: center; border: 1px solid var(--sap-border); border-bottom: 0; border-radius: 3px 3px 0 0; background: #dfe5ea; color: #45525e; white-space: nowrap; }
+.win .tab.on { background: var(--sap-win); color: var(--sap-fg); font-weight: bold; height: 20px; z-index: 1; }
+.win .fr { border: 1px solid var(--sap-border); }
+.win .m { background: var(--sap-field); border: 1px solid var(--sap-field-border); overflow: hidden; }
+.win .m table { border-collapse: collapse; table-layout: fixed; font-size: 11px; }
+.win .m th { background: var(--sap-head); font-weight: normal; text-align: left; padding: 2px 4px; border-right: 1px solid #b7c2cd; border-bottom: 1px solid #b7c2cd; height: 19px; white-space: nowrap; overflow: hidden; }
+.win .m td { padding: 1px 4px; height: 18px; border-right: 1px solid #e1e6eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win .m tr:nth-child(even) td { background: var(--sap-row-alt); }
+.win .m tr.sel td { background: var(--sap-sel); }
+.win .m td.n { text-align: right; }
+.win .m td.idx { color: #6b7681; text-align: center; background: var(--sap-head); }
+.win .m td.go::before { content: "➜ "; color: var(--sap-link); font-weight: bold; }
+.win .m .box { display: inline-block; width: 11px; height: 11px; border: 1px solid #7d8b98; background: #fff; vertical-align: -1px; text-align: center; line-height: 9px; font-size: 11px; font-weight: bold; color: #1e3d5c; }
+.win .pin { width: 20px; height: 20px; border-radius: 50%; background: var(--sap-pin); color: #fff; font: bold 12px/20px Arial, sans-serif; text-align: center; box-shadow: 0 0 0 2px #fff; z-index: 3; }
+.legend { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 15.5px; }
+.legend li { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 8px; }
+.legend li span { width: 20px; height: 20px; border-radius: 50%; background: var(--sap-pin); color: #fff; font: bold 12px/20px Arial, sans-serif; text-align: center; margin-top: 3px; }
+
+/* Menu principal SAP */
+.menu .body { padding: 6px 0; }
+.menu .it { padding: 2px 12px 2px 10px; display: flex; gap: 6px; align-items: center; }
+.menu .it.sub { padding-left: 32px; }
+.menu .it.sub2 { padding-left: 54px; }
+.menu .it.hl { background: #cfe0f1; }
+.menu .it .ar { color: #5c6875; width: 12px; display: inline-block; }
+
+/* Boîte de message SAP */
+.msg .body { padding: 16px 18px 14px; }
+.msg .txt { white-space: pre-line; line-height: 1.55; display: flex; gap: 12px; }
+.msg .ico { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #2f6fb3; color: #fff; font: bold 17px/28px Georgia, serif; text-align: center; }
+.msg .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.msg .btns .b { position: static; width: 70px; display: inline-block; }
+
+/* Statut SAP (barre d'état) */
+.sb { margin-top: 8px; font-family: Tahoma, "Segoe UI", Arial, sans-serif; font-size: 12px; padding: 4px 8px; border-radius: 3px; display: inline-block; }
+.sb.ok { background: #dff3e4; color: #1d5a2f; border: 1px solid #a8d5b3; }
+.sb.wn { background: #fff4d6; color: #6b4a00; border: 1px solid #e0c47a; }
+
+/* Schéma des objets */
+.objects { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 18px 0; }
+@media (max-width: 700px) { .objects { grid-template-columns: minmax(0,1fr); } }
+.objects section { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+.objects h4 { margin: 0 0 6px; font-family: var(--f-display); font-weight: 700; font-size: 16px; }
+.objects ul { margin: 0; padding-left: 18px; font-size: 15px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="layout">
+<nav class="toc" aria-label="Sommaire">
+  <p>Sommaire</p>
+  <ol>
+    <li><a href="#principe">1. Le principe</a></li>
+    <li><a href="#installation">2. Mise en place</a></li>
+    <li><a href="#base">3. Données de base</a></li>
+    <li><a href="#avis">4. Déclarer une panne</a></li>
+    <li><a href="#ordre">5. L'ordre de maintenance</a></li>
+    <li><a href="#pieces">6. Sortir des pièces</a></li>
+    <li><a href="#achats">7. Achats et prestations</a></li>
+    <li><a href="#temps">8. Confirmer le temps</a></li>
+    <li><a href="#cloture">9. Clôturer un ordre</a></li>
+    <li><a href="#prestataires">10. Garanties, contrats, prestataires</a></li>
+    <li><a href="#immo">11. Immobiliser une réparation</a></li>
+    <li><a href="#mesures">12. Relevés et mesures</a></li>
+    <li><a href="#preventif">13. Maintenance préventive</a></li>
+    <li><a href="#rapports">14. Rapports et indicateurs</a></li>
+    <li><a href="#compta">15. Écritures générées</a></li>
+    <li><a href="#erreurs">16. Messages et solutions</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="top">
+  <p class="eyebrow">Add-on SAP Business One · Guide utilisateur</p>
+  <h1>Gestion de la maintenance</h1>
+  <p class="lead">Ce guide explique comment décrire votre parc (sites, équipements, gammes), déclarer une panne, piloter les interventions internes ou sous-traitées, suivre garanties et contrats, planifier l'entretien préventif et analyser les coûts et la disponibilité. Il s'adresse aux techniciens et responsables maintenance, aux acheteurs et, pour la partie « Mise en place », à l'administrateur SAP et à la comptabilité.</p>
+  <div class="note warn">
+    <strong>À propos des illustrations</strong>
+    <p>Les écrans de ce guide reproduisent les fenêtres de l'add-on (mêmes champs, libellés, boutons et disposition). Les équipements, prestataires, montants et numéros sont des exemples ; les montants suivent le format de la société (sans décimale, virgule pour les milliers : 1,200,000). L'apparence exacte (couleurs, polices) dépend de votre version et de votre thème SAP Business One.</p>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<h2 id="principe">1. Le principe</h2>
+<p>L'add-on reprend l'organisation du module Maintenance de SAP S/4HANA. Votre parc est décrit une fois pour toutes ; chaque intervention passe ensuite par un <strong>avis</strong> (on signale) puis un <strong>ordre</strong> (on planifie, réalise et chiffre).</p>
+
+<div class="objects">
+  <section><h4>Le parc</h4><ul><li>Postes techniques : sites, bâtiments, lignes, zones</li><li>Équipements : chaque machine, véhicule, climatiseur…</li><li>Points de mesure : compteurs, températures</li></ul></section>
+  <section><h4>Les interventions</h4><ul><li>Avis : demande, panne, rapport</li><li>Ordres : opérations, pièces, coûts</li><li>Confirmations de temps, sorties de pièces, achats</li></ul></section>
+  <section><h4>Le préventif et les tiers</h4><ul><li>Gammes : opérations types</li><li>Plans : calendrier ou compteur</li><li>Contrats, garanties, envois chez un prestataire</li></ul></section>
+</div>
+
+<p>Le cycle d'un ordre suit les statuts système de SAP PM :</p>
+<div class="cycle" role="list">
+  <div role="listitem"><i>OSNO</i><b>Avis</b><span>La panne est signalée, en attente de traitement.</span></div>
+  <div role="listitem"><i>CRTD</i><b>Ordre créé</b><span>On prépare : opérations, pièces, prestataire.</span></div>
+  <div role="listitem"><i>REL</i><b>Lancé</b><span>On réalise : pièces sorties, temps confirmés, achats.</span></div>
+  <div role="listitem"><i>TECO</i><b>Clôture technique</b><span>Travail terminé ; l'avis est clos, le plan avance.</span></div>
+  <div role="listitem"><i>CLSD</i><b>Clôturé</b><span>Achats facturés ; coûts figés, immobilisation éventuelle.</span></div>
+</div>
+
+<div class="table-wrap"><table class="doc">
+  <tr><th>Type</th><th>Usage</th></tr>
+  <tr><td><span class="st">M1</span> Demande de maintenance</td><td>Un besoin sans arrêt : un réglage, une petite réparation, une amélioration.</td></tr>
+  <tr><td><span class="st">M2</span> Avis de panne</td><td>Un dysfonctionnement ; cochez « Arrêt de l'équipement » si la machine est arrêtée, pour mesurer la durée d'arrêt.</td></tr>
+  <tr><td><span class="st">M3</span> Rapport d'activité</td><td>Trace d'un travail déjà fait sur place. Ne génère pas d'ordre.</td></tr>
+  <tr><td><span class="st">PM01</span> Correctif</td><td>Réparation suite à une panne (créé depuis un avis).</td></tr>
+  <tr><td><span class="st">PM02</span> Préventif</td><td>Entretien planifié, généré par un plan de maintenance.</td></tr>
+  <tr><td><span class="st">PM03</span> Amélioration</td><td>Travaux qui augmentent la valeur de l'équipement : proposés « à immobiliser ».</td></tr>
+  <tr><td><span class="st">PM04</span> Inspection</td><td>Contrôle réglementaire ou visite d'inspection.</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="installation">2. Mise en place (administrateur)</h2>
+
+<h3>2.1 Activer l'add-on</h3>
+<ol class="steps">
+  <li><div>Dans SAP Business One : <span class="path">Administration → Add-ons → Gestion des add-ons</span>, enregistrez le package (64 bits) de l'add-on Maintenance et cochez le démarrage automatique.</div></li>
+  <li><div>Au premier lancement, l'add-on crée ses tables (<code>@MNT_…</code>), ses objets (avis, ordres, équipements, contrats…), la série de numérotation des avis et des ordres, des catalogues d'exemple, cinq catégories d'équipement et trois postes de travail. Un message le signale : <strong>les autres utilisateurs doivent se reconnecter</strong>.</div></li>
+  <li><div>Le menu <strong>Maintenance</strong> apparaît en bas du menu principal (Modules), et la barre d'état affiche « Add-on Maintenance démarré. ».</div></li>
+</ol>
+
+<figure class="shot">
+  <div class="frame">
+    <div class="win menu" style="width:330px">
+      <div class="tb"><span>Menu principal</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body">
+        <div class="it"><span class="ar">▸</span>Stocks</div>
+        <div class="it"><span class="ar">▸</span>Ressources</div>
+        <div class="it"><span class="ar">▸</span>Rapports</div>
+        <div class="it"><span class="ar">▾</span><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADnSURBVDhPY/hPIiCs4eS150D049cfCBefhusP3nqVrNeIWuCcvyasZsue0w+Bgjg1AI0EqgOqDqjcBBEpmHjgyavPODUAzQOqBqLsvn0QkYa5xxduu4pTw7qDtyEagKhyxhGgav34xbM2XsKpoXPJabgGOAL6HruGyWvOoykFovbFp4BSWDQgq46o3zph1TmgyKELTyCy6BqQVad27oYHPxygaCCoGggQGohRDQQgDT8fHb+4ur69OD4irQG/aiAAafh0tO9ZjxwQAfXgVw0EKBoOL6zErxoIoE4C6gEiIAMiihP8/w8AN0KKSSR5fDAAAAAASUVORK5CYII=" width="16" height="16" alt="" style="image-rendering:pixelated"><strong>Maintenance</strong></div>
+        <div class="it sub"><span class="ar">▾</span>Données de base</div>
+        <div class="it sub2">Postes techniques</div>
+        <div class="it sub2">Équipements</div>
+        <div class="it sub2">Gammes de maintenance</div>
+        <div class="it sub2">Postes de travail</div>
+        <div class="it sub2">Catalogues (dommages, causes...)</div>
+        <div class="it sub2">Catégories d'équipement</div>
+        <div class="it sub2">Contrats de maintenance</div>
+        <div class="it sub hl">Avis de maintenance</div>
+        <div class="it sub">Ordres de maintenance</div>
+        <div class="it sub">Relevés de compteurs et mesures</div>
+        <div class="it sub">Envoi / retour chez un prestataire</div>
+        <div class="it sub"><span class="ar">▸</span>Maintenance préventive</div>
+        <div class="it sub"><span class="ar">▸</span>Rapports</div>
+        <div class="it sub">Paramètres</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Le menu Maintenance dans le menu principal de SAP Business One.</figcaption>
+</figure>
+
+<h3>2.2 Paramètres</h3>
+<p>Ouvrez <span class="path">Maintenance → Paramètres</span> et renseignez :</p>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Paramètre</th><th>Rôle</th></tr>
+  <tr><td><strong>Compte de charges de maintenance</strong></td><td>Contrepartie des sorties de pièces et des demandes d'achat de prestations (ex. <code>62430000</code> Maintenance). Une catégorie d'équipement peut avoir son propre compte.</td></tr>
+  <tr><td><strong>Comptabiliser la main-d'oeuvre</strong></td><td>Si coché, chaque confirmation de temps passe une écriture (heures × taux du poste de travail) entre le compte de charges de main-d'oeuvre et le compte d'imputation.</td></tr>
+  <tr><td><strong>Compte d'immobilisations en cours</strong></td><td>Reçoit les coûts des ordres « à immobiliser » à leur clôture (voir <a href="#immo">section 11</a>).</td></tr>
+  <tr><td><strong>Axe analytique</strong></td><td>Dimension des centres de coûts portés par les sites, équipements et ordres.</td></tr>
+  <tr><td><strong>Magasin de pièces par défaut</strong></td><td>Proposé sur les composants quand ni l'équipement ni son site n'en ont.</td></tr>
+  <tr><td><strong>Préfixe des équipements</strong></td><td>Numérotation proposée à la création (ex. <code>EQ</code> → EQ00001, EQ00002…).</td></tr>
+  <tr><td><strong>Délais par priorité</strong></td><td>Heures accordées pour réaliser l'intervention : la fin souhaitée et la fin prévue en découlent (par défaut 4 h, 24 h, 72 h, 168 h).</td></tr>
+  <tr><td><strong>Horizon d'ordonnancement</strong></td><td>Nombre de jours proposé dans l'écran d'ordonnancement des plans.</td></tr>
+</table></div>
+<div class="note warn">
+  <strong>Comptes refusés</strong>
+  <p>L'add-on refuse un compte inconnu, titre, bloqué ou <strong>collectif</strong> (écritures manuelles interdites) : ses écritures de main-d'oeuvre et de règlement en seraient rejetées par SAP.</p>
+</div>
+
+<h3>2.3 Postes de travail, catalogues, catégories</h3>
+<p>Ces trois listes s'ouvrent en grille éditable (fenêtres par défaut SAP) depuis <span class="path">Maintenance → Données de base</span>.</p>
+<ul>
+  <li><strong>Postes de travail</strong> : un par atelier ou équipe (MECA, ELEC…) et un pour les prestataires (EXT). Renseignez le <strong>taux horaire</strong> : il valorise les heures prévues et confirmées.</li>
+  <li><strong>Catalogues</strong> : codes de partie d'objet, dommage, cause et activité utilisés dans les avis (ex. <code>D-FUI</code> Fuite, <code>C-ENT</code> Défaut d'entretien). Ils alimentent l'analyse des pannes.</li>
+  <li><strong>Catégories d'équipement</strong> : familles (Machines, Véhicules, Bâtiments et installations…), avec un compte de charges propre si besoin.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="base">3. Données de base</h2>
+
+<h3>3.1 Postes techniques (sites)</h3>
+<p>Un poste technique représente un lieu : un site, une agence externe, un bâtiment, une ligne. Ils s'emboîtent (champ <strong>Poste supérieur</strong>) et portent l'adresse, le <strong>centre de coûts</strong> et le <strong>magasin de pièces</strong>. Un équipement installé dessous hérite de ces deux valeurs, même plusieurs niveaux plus bas, s'il n'a pas les siennes. Le bas de la fiche liste son contenu ; le bouton <strong>Nouvel équipement ici</strong> crée un équipement déjà rattaché.</p>
+
+<h3>3.2 Équipements</h3>
+<p>Ouvrez <span class="path">Maintenance → Données de base → Équipements</span>. La fiche s'utilise comme toute fiche SAP : mode Création à l'ouverture, recherche par le menu Rechercher, navigation par les flèches de la barre d'outils.</p>
+
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:780px">
+      <div class="tb"><span>Équipement</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:525px">
+        <div class="l" style="left:10px;top:10px;width:120px">Code</div><div class="f off" style="left:130px;top:10px;width:120px">CLIM-0012</div>
+        <div class="l" style="left:10px;top:27px;width:120px">Désignation</div><div class="f" style="left:130px;top:27px;width:260px">Climatiseur Daikin 24 000 BTU</div>
+        <div class="l" style="left:400px;top:10px;width:100px">Catégorie</div><div class="f cmb" style="left:500px;top:10px;width:200px">Bâtiments et installations</div>
+        <div class="l" style="left:400px;top:27px;width:100px">Statut</div><div class="f cmb" style="left:500px;top:27px;width:200px">En service</div>
+        <div class="l" style="left:400px;top:44px;width:100px">Criticité</div><div class="f cmb" style="left:500px;top:44px;width:200px">B - Importante</div>
+
+        <div class="tab on" style="left:10px;top:70px;width:110px">Général</div>
+        <div class="tab" style="left:120px;top:70px;width:130px">Données techniques</div>
+        <div class="tab" style="left:250px;top:70px;width:120px">Points de mesure</div>
+        <div class="tab" style="left:370px;top:70px;width:100px">Historique</div>
+        <div class="tab" style="left:470px;top:70px;width:100px">Remarques</div>
+        <div class="fr" style="left:10px;top:89px;width:750px;height:380px"></div>
+
+        <div class="l" style="left:20px;top:95px;width:120px">Poste technique</div><div class="lk" style="left:121px;top:96px">➜</div><div class="f" style="left:140px;top:95px;width:120px">AG-YOP-01</div><div class="f off" style="left:265px;top:95px;width:220px">Agence Yopougon - bureaux</div>
+        <div class="l" style="left:20px;top:112px;width:120px">Équipement supérieur</div><div class="f" style="left:140px;top:112px;width:120px"></div><div class="f off" style="left:265px;top:112px;width:220px"></div>
+        <div class="l" style="left:20px;top:129px;width:120px">Poste de travail</div><div class="f" style="left:140px;top:129px;width:120px">EXT</div><div class="f off" style="left:265px;top:129px;width:220px">Prestataires externes</div>
+        <div class="l" style="left:20px;top:146px;width:120px">Centre de coûts</div><div class="f" style="left:140px;top:146px;width:120px">0101CH01</div>
+        <div class="l" style="left:20px;top:163px;width:120px">Magasin de pièces</div><div class="lk" style="left:121px;top:164px">➜</div><div class="f" style="left:140px;top:163px;width:120px">ABJ</div>
+        <div class="l" style="left:20px;top:180px;width:120px">Mise en service</div><div class="f" style="left:140px;top:180px;width:120px">15/03/2026</div>
+        <div class="f off warnbar" style="left:20px;top:207px;width:720px">SOUS GARANTIE jusqu'au 14/03/2027 (garant FROIDTECH SARL)  |  Prestataire attitré : CLIMA SERVICES</div>
+        <div class="f off" style="left:20px;top:224px;width:720px"></div>
+
+        <div class="b" style="left:6px;top:498px;width:65px">OK</div>
+        <div class="b" style="left:76px;top:498px;width:65px">Annuler</div>
+        <div class="b" style="left:150px;top:498px;width:110px">Créer un avis</div>
+        <div class="b" style="left:265px;top:498px;width:150px">Ordres de l'équipement</div>
+        <div class="b" style="left:420px;top:498px;width:165px">Envoi / retour prestataire</div>
+
+        <div class="pin" style="left:705px;top:7px">1</div>
+        <div class="pin" style="left:262px;top:92px">2</div>
+        <div class="pin" style="left:742px;top:204px">3</div>
+        <div class="pin" style="left:588px;top:497px">4</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Fiche équipement, onglet Général : un climatiseur installé dans une agence externe, encore sous garantie.</figcaption>
+</figure>
+<ol class="legend">
+  <li><span>1</span><div><strong>Statut</strong> : En service, Hors service, Chez le prestataire (posé automatiquement lors d'un envoi), Mis au rebut. Un équipement au rebut ne peut plus recevoir d'ordre lancé.</div></li>
+  <li><span>2</span><div><strong>Poste technique</strong> : l'emplacement. La flèche ouvre sa fiche ; le centre de coûts et le magasin sont repris du site s'ils sont vides.</div></li>
+  <li><span>3</span><div><strong>Bandeau</strong> : garantie en cours, contrat actif, prestataire attitré, envoi en cours. Il se met à jour à chaque affichage.</div></li>
+  <li><span>4</span><div>Raccourcis : déclarer une panne sur cet équipement, voir ses ordres, l'envoyer en réparation chez un prestataire.</div></li>
+</ol>
+
+<p>Les autres onglets :</p>
+<ul>
+  <li><strong>Données techniques</strong> : fabricant, modèle, n° de série, année, acquisition (date, valeur), <strong>fin de garantie</strong>, article ou immobilisation SAP correspondant, <strong>fournisseur d'achat</strong>, <strong>garant</strong> (si ce n'est pas le fournisseur d'achat) et <strong>prestataire de maintenance attitré</strong>.</li>
+  <li><strong>Points de mesure</strong> : compteurs (heures moteur, km) et mesures (température, pression) avec leur unité, l'estimation annuelle d'un compteur et les limites basse et haute d'une mesure. Le bouton <strong>Saisir un relevé</strong> ouvre l'écran de la <a href="#mesures">section 12</a>.</li>
+  <li><strong>Historique</strong> : synthèse des 12 derniers mois (ordres, pannes, arrêt, MTTR, disponibilité, coût total) et liste des ordres, avis et envois chez un prestataire. Un double-clic ouvre la ligne.</li>
+</ul>
+
+<h3>3.3 Gammes</h3>
+<p>Une gamme décrit une intervention type : ses <strong>opérations</strong> (n°, description, poste de travail, clé Interne ou Externe, heures prévues, coût prévu et prestataire pour une opération externe) et ses <strong>composants</strong> (article, quantité, magasin, approvisionnement Stock ou Achat). Elle sert à pré-remplir un ordre (champ <strong>Reprendre la gamme</strong>) et à générer les ordres des plans préventifs.</p>
+
+<!-- ============================================================ -->
+<h2 id="avis">4. Déclarer une panne (avis)</h2>
+<ol class="steps">
+  <li><div>Ouvrez <span class="path">Maintenance → Avis de maintenance</span> (ou <strong>Créer un avis</strong> depuis la fiche équipement).</div></li>
+  <li><div>Choisissez le <strong>type</strong>, l'<strong>équipement</strong> (le poste technique et le poste de travail se remplissent) et la <strong>priorité</strong> : la fin souhaitée se calcule avec le délai de la priorité.</div></li>
+  <li><div>Saisissez une <strong>description courte</strong> et, dans les onglets, le détail, l'arrêt machine et les codes catalogue.</div></li>
+  <li><div>Cliquez sur <strong>Ajouter</strong>. L'avis reste affiché pour enchaîner sur <strong>Créer l'ordre</strong>.</div></li>
+</ol>
+
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:780px">
+      <div class="tb"><span>Avis de maintenance</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:525px">
+        <div class="l" style="left:10px;top:10px;width:110px">N°</div><div class="f off" style="left:120px;top:10px;width:80px">112</div>
+        <div class="l" style="left:10px;top:27px;width:110px">N° interne</div><div class="f off" style="left:120px;top:27px;width:80px">112</div>
+        <div class="l" style="left:400px;top:10px;width:110px">Type d'avis</div><div class="f cmb" style="left:510px;top:10px;width:230px">M2 - Avis de panne</div>
+        <div class="l" style="left:400px;top:27px;width:110px">Statut</div><div class="f cmb off" style="left:510px;top:27px;width:230px">En attente (OSNO)</div>
+        <div class="l" style="left:10px;top:44px;width:110px">Priorité</div><div class="f cmb" style="left:120px;top:44px;width:150px">2 - Élevée</div>
+        <div class="l" style="left:400px;top:44px;width:110px">Ordre</div><div class="lk" style="left:491px;top:45px">➜</div><div class="f off" style="left:510px;top:44px;width:80px"></div>
+
+        <div class="l" style="left:10px;top:69px;width:110px">Équipement</div><div class="lk" style="left:101px;top:70px">➜</div><div class="f" style="left:120px;top:69px;width:120px">CLIM-0012</div><div class="f off" style="left:245px;top:69px;width:150px">Climatiseur Daikin 24 000…</div>
+        <div class="l" style="left:400px;top:69px;width:110px">Déclaré le</div><div class="f" style="left:510px;top:69px;width:90px">03/10/2026</div><div class="f" style="left:605px;top:69px;width:50px">09:40</div>
+        <div class="l" style="left:10px;top:86px;width:110px">Poste technique</div><div class="f" style="left:120px;top:86px;width:120px">AG-YOP-01</div><div class="f off" style="left:245px;top:86px;width:150px">Agence Yopougon - bur…</div>
+        <div class="l" style="left:400px;top:86px;width:110px">Déclaré par</div><div class="f" style="left:510px;top:86px;width:145px">kouassi.a</div>
+        <div class="l" style="left:10px;top:103px;width:110px">Poste de travail</div><div class="f" style="left:120px;top:103px;width:120px">EXT</div>
+        <div class="l" style="left:400px;top:103px;width:110px">Début souhaité</div><div class="f" style="left:510px;top:103px;width:90px">03/10/2026</div>
+        <div class="l" style="left:10px;top:120px;width:110px">Point de mesure</div><div class="f off" style="left:120px;top:120px;width:80px"></div>
+        <div class="l" style="left:400px;top:120px;width:110px">Fin souhaitée</div><div class="f" style="left:510px;top:120px;width:90px">04/10/2026</div>
+        <div class="l" style="left:10px;top:141px;width:110px">Description courte</div><div class="f" style="left:120px;top:141px;width:630px">Ne refroidit plus, bruit anormal au démarrage</div>
+        <div class="f off warnbar" style="left:120px;top:158px;width:630px">SOUS GARANTIE jusqu'au 14/03/2027 (garant FROIDTECH SARL)</div>
+
+        <div class="tab" style="left:10px;top:181px;width:110px">Description</div>
+        <div class="tab on" style="left:120px;top:181px;width:110px">Panne / arrêt</div>
+        <div class="tab" style="left:230px;top:181px;width:120px">Codes catalogue</div>
+        <div class="fr" style="left:10px;top:200px;width:750px;height:269px"></div>
+        <div class="ck on" style="left:20px;top:206px">Arrêt de l'équipement (panne)</div>
+        <div class="l" style="left:20px;top:229px;width:130px">Début de panne</div><div class="f" style="left:150px;top:229px;width:90px">03/10/2026</div><div class="f" style="left:245px;top:229px;width:50px">08:15</div>
+        <div class="l" style="left:20px;top:246px;width:130px">Fin de panne</div><div class="f" style="left:150px;top:246px;width:90px"></div><div class="f" style="left:245px;top:246px;width:50px"></div>
+        <div class="f off" style="left:20px;top:269px;width:400px">Durée d'arrêt : 1,4 h (panne en cours)</div>
+
+        <div class="b" style="left:6px;top:498px;width:65px">OK</div>
+        <div class="b" style="left:76px;top:498px;width:65px">Annuler</div>
+        <div class="b" style="left:150px;top:498px;width:110px">Créer l'ordre</div>
+        <div class="b" style="left:265px;top:498px;width:110px">Terminer l'avis</div>
+        <div class="b off" style="left:380px;top:498px;width:110px">Rouvrir l'avis</div>
+
+        <div class="pin" style="left:272px;top:41px">1</div>
+        <div class="pin" style="left:752px;top:155px">2</div>
+        <div class="pin" style="left:425px;top:266px">3</div>
+        <div class="pin" style="left:262px;top:497px">4</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Avis de panne enregistré, onglet Panne / arrêt.</figcaption>
+</figure>
+<ol class="legend">
+  <li><span>1</span><div><strong>Priorité</strong> : en création, changer la priorité recalcule la fin souhaitée. À la création de l'ordre, le délai d'intervention d'un contrat s'applique s'il est plus court.</div></li>
+  <li><span>2</span><div><strong>Bandeau</strong> : en création, la barre d'état affiche aussi l'alerte si l'équipement est sous garantie ou sous contrat. L'avis mémorise ces deux informations.</div></li>
+  <li><span>3</span><div><strong>Durée d'arrêt</strong> : calculée entre le début et la fin de panne (jusqu'à maintenant si la fin est vide). Elle alimente MTTR, MTBF et disponibilité. La fin de panne est remplie automatiquement à la clôture technique si elle est restée vide.</div></li>
+  <li><span>4</span><div><strong>Terminer l'avis</strong> n'est possible seul que s'il n'y a pas d'ordre en cours ; sinon l'avis se termine avec la clôture technique de l'ordre.</div></li>
+</ol>
+
+<h3>Ce que fait « Créer l'ordre »</h3>
+<p>L'add-on crée un ordre PM01 avec l'équipement, la priorité, la description, les dates et le centre de coûts, plus une opération 0010 à détailler. L'avis passe <span class="st">NOPR</span> et l'ordre s'ouvre.</p>
+<ul>
+  <li>Équipement <strong>sous garantie</strong> : l'opération est confiée au garant, en externe, à coût 0, et l'ordre est marqué « Sous garantie ».</li>
+  <li>Équipement <strong>sous contrat</strong> couvrant le dépannage : l'opération est confiée au titulaire du contrat, l'ordre est rattaché au contrat et sa fin prévue respecte le délai d'intervention.</li>
+  <li>Sinon, l'opération est interne, sur le poste de travail de l'équipement.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="ordre">5. L'ordre de maintenance</h2>
+<p>L'ordre réunit tout ce qui concerne l'intervention. Les boutons du bas suivent son statut ; un bouton grisé n'est pas permis dans le statut actuel.</p>
+
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:960px">
+      <div class="tb"><span>Ordre de maintenance</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:665px">
+        <div class="l" style="left:10px;top:10px;width:100px">N°</div><div class="f off" style="left:110px;top:10px;width:80px">245</div>
+        <div class="l" style="left:10px;top:27px;width:100px">N° interne</div><div class="f off" style="left:110px;top:27px;width:80px">245</div>
+        <div class="l" style="left:330px;top:10px;width:100px">Type d'ordre</div><div class="f cmb" style="left:430px;top:10px;width:180px">PM01 - Correctif</div>
+        <div class="l" style="left:330px;top:27px;width:100px">Priorité</div><div class="f cmb" style="left:430px;top:27px;width:180px">2 - Élevée</div>
+        <div class="l" style="left:650px;top:10px;width:100px">Statut</div><div class="f cmb off" style="left:750px;top:10px;width:180px">Lancé (REL)</div>
+        <div class="l" style="left:650px;top:27px;width:100px">Avis</div><div class="lk" style="left:731px;top:28px">➜</div><div class="f off" style="left:750px;top:27px;width:80px">112</div>
+
+        <div class="l" style="left:10px;top:50px;width:100px">Équipement</div><div class="lk" style="left:91px;top:51px">➜</div><div class="f" style="left:110px;top:50px;width:110px">CLIM-0012</div><div class="f off" style="left:225px;top:50px;width:200px">Climatiseur Daikin 24 000 BTU</div>
+        <div class="l" style="left:650px;top:50px;width:100px">Début prévu</div><div class="f" style="left:750px;top:50px;width:90px">03/10/2026</div>
+        <div class="l" style="left:10px;top:67px;width:100px">Poste technique</div><div class="f" style="left:110px;top:67px;width:110px">AG-YOP-01</div><div class="f off" style="left:225px;top:67px;width:200px">Agence Yopougon - bureaux</div>
+        <div class="l" style="left:650px;top:67px;width:100px">Fin prévue</div><div class="f" style="left:750px;top:67px;width:90px">04/10/2026</div>
+        <div class="l" style="left:10px;top:84px;width:100px">Poste de travail</div><div class="f" style="left:110px;top:84px;width:110px">EXT</div>
+        <div class="l" style="left:330px;top:84px;width:100px">Responsable</div><div class="f" style="left:430px;top:84px;width:110px">kouassi.a</div>
+        <div class="l" style="left:650px;top:84px;width:100px">Début réel</div><div class="f off" style="left:750px;top:84px;width:90px">03/10/2026</div>
+        <div class="l" style="left:10px;top:101px;width:100px">Centre de coûts</div><div class="f" style="left:110px;top:101px;width:110px">0101CH01</div>
+        <div class="l" style="left:330px;top:101px;width:100px">Reprendre la gamme</div><div class="f" style="left:430px;top:101px;width:110px"></div>
+        <div class="l" style="left:650px;top:101px;width:100px">Fin réelle</div><div class="f off" style="left:750px;top:101px;width:90px"></div>
+        <div class="l" style="left:10px;top:118px;width:100px">Plan d'entretien</div><div class="f off" style="left:110px;top:118px;width:110px"></div>
+        <div class="l" style="left:330px;top:118px;width:100px">Échéance du plan</div><div class="f off" style="left:430px;top:118px;width:90px"></div>
+        <div class="l" style="left:650px;top:118px;width:100px">Clôt. technique</div><div class="f off" style="left:750px;top:118px;width:90px"></div>
+        <div class="l" style="left:10px;top:135px;width:100px">Contrat</div><div class="f off" style="left:110px;top:135px;width:110px"></div>
+        <div class="ck on dim" style="left:330px;top:135px">Sous garantie</div>
+        <div class="ck" style="left:650px;top:135px">À immobiliser</div><div class="f" style="left:750px;top:135px;width:90px"></div>
+        <div class="l" style="left:10px;top:156px;width:100px">Description courte</div><div class="f" style="left:110px;top:156px;width:820px">Ne refroidit plus, bruit anormal au démarrage</div>
+        <div class="f off warnbar" style="left:110px;top:173px;width:820px">SOUS GARANTIE jusqu'au 14/03/2027 (garant FROIDTECH SARL)</div>
+
+        <div class="tab on" style="left:10px;top:196px;width:100px">Opérations</div>
+        <div class="tab" style="left:110px;top:196px;width:100px">Composants</div>
+        <div class="tab" style="left:210px;top:196px;width:90px">Coûts</div>
+        <div class="tab" style="left:300px;top:196px;width:100px">Confirmations</div>
+        <div class="tab" style="left:400px;top:196px;width:110px">Documents liés</div>
+        <div class="tab" style="left:510px;top:196px;width:100px">Description</div>
+        <div class="fr" style="left:10px;top:215px;width:930px;height:394px"></div>
+        <div class="m" style="left:20px;top:221px;width:910px;height:354px">
+          <table>
+            <colgroup><col style="width:25px"><col style="width:60px"><col style="width:200px"><col style="width:85px"><col style="width:70px"><col style="width:80px"><col style="width:40px"><col style="width:80px"><col style="width:80px"><col style="width:70px"><col style="width:55px"><col style="width:45px"></colgroup>
+            <tr><th>#</th><th>Opération</th><th>Description</th><th>Poste de travail</th><th>Clé</th><th>Travail prévu (h)</th><th>Pers.</th><th>Coût presta.</th><th>Prestataire</th><th>Réalisé (h)</th><th>Terminée</th><th>DA</th></tr>
+            <tr class="sel"><td class="idx">1</td><td>0010</td><td>Sous garantie - Ne refroidit plus</td><td>EXT</td><td>Externe</td><td class="n">0.00</td><td class="n">1</td><td class="n">0</td><td>F-FROID</td><td class="n">0.00</td><td><span class="box"></span></td><td></td></tr>
+            <tr><td class="idx">2</td><td>0020</td><td>Contrôle de l'alimentation électrique</td><td>ELEC</td><td>Interne</td><td class="n">1.50</td><td class="n">1</td><td class="n">0</td><td></td><td class="n">1.50</td><td><span class="box">✓</span></td><td></td></tr>
+          </table>
+        </div>
+        <div class="b" style="left:20px;top:580px;width:120px">Ajouter une ligne</div>
+        <div class="b" style="left:145px;top:580px;width:120px">Supprimer la ligne</div>
+        <div class="b" style="left:270px;top:580px;width:140px">Confirmer du temps...</div>
+        <div class="b" style="left:415px;top:580px;width:170px">Envoi / retour prestataire...</div>
+
+        <div class="b" style="left:6px;top:638px;width:65px">OK</div>
+        <div class="b" style="left:76px;top:638px;width:65px">Annuler</div>
+        <div class="b off" style="left:150px;top:638px;width:112px">Lancer</div>
+        <div class="b" style="left:266px;top:638px;width:112px">Clôture technique</div>
+        <div class="b off" style="left:382px;top:638px;width:112px">Annuler la TECO</div>
+        <div class="b off" style="left:498px;top:638px;width:112px">Clôturer</div>
+        <div class="b" style="left:614px;top:638px;width:112px">Annuler l'ordre</div>
+        <div class="b" style="left:730px;top:638px;width:112px">Demandes d'achat</div>
+
+        <div class="pin" style="left:932px;top:7px">1</div>
+        <div class="pin" style="left:545px;top:98px">2</div>
+        <div class="pin" style="left:845px;top:132px">3</div>
+        <div class="pin" style="left:640px;top:243px">4</div>
+        <div class="pin" style="left:588px;top:579px">5</div>
+        <div class="pin" style="left:845px;top:637px">6</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Ordre correctif lancé, sur un climatiseur sous garantie. La première opération revient au garant (code fournisseur F-FROID), la seconde a été faite en interne.</figcaption>
+</figure>
+<ol class="legend">
+  <li><span>1</span><div><strong>Statut</strong> : géré uniquement par les boutons du bas. L'ordre est modifiable en <span class="st">CRTD</span> et <span class="st">REL</span>, figé ensuite.</div></li>
+  <li><span>2</span><div><strong>Reprendre la gamme</strong> : choisir une gamme ajoute ses opérations et composants à l'ordre (numéros décalés après les opérations existantes).</div></li>
+  <li><span>3</span><div><strong>À immobiliser</strong> et compte de règlement : voir <a href="#immo">section 11</a>. Coché d'office pour un PM03.</div></li>
+  <li><span>4</span><div><strong>Clé</strong> : Interne (temps confirmé par vos équipes) ou Externe (prestataire). Passer une ligne en Externe propose le prestataire par défaut et met le coût à 0 si la prestation est couverte par une garantie ou un contrat.</div></li>
+  <li><span>5</span><div><strong>Confirmer du temps</strong> propose la dernière opération cliquée. <strong>Envoi / retour prestataire</strong> enregistre le départ de l'équipement en atelier externe, lié à cet ordre.</div></li>
+  <li><span>6</span><div><strong>Demandes d'achat</strong> crée les demandes pour les composants « Achat » et les opérations externes qui n'en ont pas encore (<a href="#achats">section 7</a>).</div></li>
+</ol>
+
+<h3>Les onglets de l'ordre</h3>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Onglet</th><th>Contenu</th></tr>
+  <tr><td>Opérations</td><td>Le travail : poste, heures prévues, prestataire, heures réalisées, case Terminée (mise par une confirmation finale), n° de demande d'achat.</td></tr>
+  <tr><td>Composants</td><td>Les pièces : article, quantité prévue, magasin, opération, Stock ou Achat, coût unitaire, quantité sortie, demande d'achat. Boutons <strong>Sortie de stock</strong> et <strong>Retour en stock</strong>.</td></tr>
+  <tr><td>Coûts</td><td>Prévu, réel et écart pour la main-d'oeuvre, les pièces et les prestations ; bouton <strong>Recalculer les coûts</strong> ; état du règlement si l'ordre est à immobiliser.</td></tr>
+  <tr><td>Confirmations</td><td>Les temps saisis, avec le salarié, le montant et le n° d'écriture.</td></tr>
+  <tr><td>Documents liés</td><td>Sorties et retours de stock, demandes et commandes d'achat, factures et avoirs fournisseurs imputés sur l'ordre.</td></tr>
+  <tr><td>Description</td><td>Texte libre détaillé.</td></tr>
+</table></div>
+
+<div class="table-wrap"><table class="doc">
+  <tr><th>Coût</th><th>Prévu</th><th>Réel</th></tr>
+  <tr><td>Main-d'oeuvre</td><td>Heures prévues des opérations internes × taux du poste de travail</td><td>Somme des confirmations</td></tr>
+  <tr><td>Pièces</td><td>Quantités prévues × coût (coût moyen du magasin, sinon de l'article, sinon dernier prix d'achat)</td><td>Sorties de stock − retours</td></tr>
+  <tr><td>Prestations</td><td>Coût prévu des opérations externes</td><td>Factures fournisseurs imputées sur l'ordre − avoirs (hors articles stockés, comptés à leur sortie)</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="pieces">6. Sortir et retourner des pièces</h2>
+<p>Sur un ordre <span class="st">REL</span>, onglet Composants, cliquez sur <strong>Sortie de stock</strong>. Seuls les articles gérés en stock apparaissent ; la quantité proposée est le reste à sortir.</p>
+
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:820px">
+      <div class="tb"><span>Sortie de pièces - ordre 245</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:390px">
+        <div class="l" style="left:10px;top:10px;width:150px">Date de comptabilisation</div><div class="f" style="left:160px;top:10px;width:100px">03/10/2026</div>
+        <div class="l" style="left:280px;top:10px;width:520px">Quantités proposées : reste à sortir. Mettez 0 pour ne pas sortir une ligne.</div>
+        <div class="m" style="left:10px;top:35px;width:780px;height:305px">
+          <table>
+            <colgroup><col style="width:30px"><col style="width:110px"><col style="width:230px"><col style="width:70px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
+            <tr><th>#</th><th>Article</th><th>Désignation</th><th>Magasin</th><th>Qté prévue</th><th>Déjà sortie</th><th>Qté à sortir</th></tr>
+            <tr><td class="n">3</td><td>FIL-CLIM-24</td><td>Filtre climatiseur 24 000 BTU</td><td>ABJ</td><td class="n">2.00</td><td class="n">0.00</td><td class="n">2.00</td></tr>
+            <tr><td class="n">4</td><td>GAZ-R32-KG</td><td>Gaz réfrigérant R32 (kg)</td><td>ABJ</td><td class="n">1.50</td><td class="n">0.00</td><td class="n">1.50</td></tr>
+          </table>
+        </div>
+        <div class="b" style="left:10px;top:358px;width:130px">Sortir du stock</div>
+        <div class="b" style="left:145px;top:358px;width:90px">Annuler</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Le magasin et la quantité sont modifiables avant validation.</figcaption>
+</figure>
+<ul>
+  <li>Une <strong>sortie de stock SAP</strong> est créée : compte de charges de maintenance (ou celui de la catégorie de l'équipement), centre de coûts de l'ordre, et n° d'ordre sur chaque ligne.</li>
+  <li><strong>Retour en stock</strong> remet les pièces non utilisées, au coût de leur sortie, sans dépasser la quantité nette sortie.</li>
+  <li>Les quantités sorties et les coûts réels de l'ordre sont recalculés aussitôt.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="achats">7. Achats et prestations externes</h2>
+<ol class="steps">
+  <li><div>Dans l'ordre, déclarez les pièces à acheter (approvisionnement <strong>Achat</strong>) et les opérations sous-traitées (clé <strong>Externe</strong>, prestataire, coût prévu).</div></li>
+  <li><div>Cliquez sur <strong>Demandes d'achat</strong>. L'add-on crée une demande d'achat pour les articles et une autre pour les prestations (compte de charges, prestataire proposé, n° d'ordre sur chaque ligne).</div></li>
+  <li><div>L'acheteur transforme la demande en commande puis en facture avec <strong>Copier vers</strong> : le champ <strong>Ordre de maintenance</strong> de chaque ligne est repris.</div></li>
+  <li><div>À l'enregistrement de la facture, le coût réel « Prestations » de l'ordre inclut la ligne (utilisez <strong>Recalculer les coûts</strong> pour le voir immédiatement).</div></li>
+</ol>
+<div class="note tip">
+  <strong>Facture saisie sans copie</strong>
+  <p>Si une facture fournisseur est saisie directement, renseignez vous-même le champ <strong>Ordre de maintenance</strong> (n° interne de l'ordre) sur la ligne, sinon son coût ne sera pas rattaché à l'ordre.</p>
+</div>
+<p>Les lignes couvertes par une garantie ou un contrat (coût prévu 0) ne sont pas commandées : le prestataire intervient sans nouvelle commande. Si toutes les lignes sont couvertes, un message vous invite à appeler directement le prestataire.</p>
+
+<!-- ============================================================ -->
+<h2 id="temps">8. Confirmer le temps passé</h2>
+<p>Sur un ordre <span class="st">REL</span>, cliquez sur une opération puis sur <strong>Confirmer du temps</strong>.</p>
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:520px">
+      <div class="tb"><span>Confirmation de temps - ordre 245</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:300px">
+        <div class="l" style="left:10px;top:10px;width:130px">Opération</div><div class="f cmb" style="left:140px;top:10px;width:360px">0020 - Contrôle de l'alimentation électrique (ELEC)</div>
+        <div class="f off" style="left:140px;top:27px;width:360px">Prévu 1.50 h, déjà confirmé 0.00 h</div>
+        <div class="l" style="left:10px;top:50px;width:130px">Date</div><div class="f" style="left:140px;top:50px;width:100px">03/10/2026</div>
+        <div class="l" style="left:10px;top:67px;width:130px">Salarié (option)</div><div class="f" style="left:140px;top:67px;width:80px">14</div><div class="f off" style="left:225px;top:67px;width:275px">Yao Konan</div>
+        <div class="l" style="left:10px;top:84px;width:130px">Heures travaillées</div><div class="f num focus" style="left:140px;top:84px;width:80px">1.50</div><div class="l" style="left:225px;top:84px;width:200px">(négatif = correction)</div>
+        <div class="ck on" style="left:140px;top:101px">Confirmation finale (opération terminée)</div>
+        <div class="l" style="left:10px;top:118px;width:130px">Commentaire</div><div class="f" style="left:140px;top:118px;width:360px">Disjoncteur remplacé</div>
+        <div class="b" style="left:10px;top:268px;width:90px">Valider</div>
+        <div class="b" style="left:105px;top:268px;width:90px">Annuler</div>
+      </div>
+    </div>
+  </div>
+</figure>
+<ul>
+  <li>Le montant vaut heures × taux du poste de travail de l'opération. Si la comptabilisation de la main-d'oeuvre est activée, une écriture est passée.</li>
+  <li>Une confirmation ne se supprime pas : une erreur se corrige par une confirmation d'heures négatives (le total confirmé ne peut pas devenir négatif).</li>
+  <li>La date ne peut pas être future. La première confirmation fixe le début réel de l'ordre.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="cloture">9. Clôturer un ordre</h2>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Bouton</th><th>Possible en</th><th>Effet</th></tr>
+  <tr><td><strong>Lancer</strong></td><td><span class="st">CRTD</span></td><td>Au moins une opération est exigée. L'avis passe <span class="st">NOPR</span>. Les sorties de pièces et confirmations deviennent possibles.</td></tr>
+  <tr><td><strong>Clôture technique</strong></td><td><span class="st">REL</span></td><td>Le travail est fini : fin réelle = date du jour, opérations terminées, avis terminé (<span class="st">NOCO</span>), plan de maintenance mis à jour. Un avertissement liste les opérations internes non terminées et les pièces non sorties.</td></tr>
+  <tr><td><strong>Annuler la TECO</strong></td><td><span class="st">TECO</span></td><td>Remet l'ordre en <span class="st">REL</span> et rouvre l'avis. Les dates du plan éventuel ne sont pas recalculées.</td></tr>
+  <tr><td><strong>Clôturer</strong></td><td><span class="st">TECO</span></td><td>Refusé tant qu'une demande ou commande d'achat liée est ouverte. Coûts figés ; règlement en immobilisation si l'ordre est à immobiliser.</td></tr>
+  <tr><td><strong>Annuler l'ordre</strong></td><td><span class="st">CRTD</span>, <span class="st">REL</span></td><td>Seulement sans temps confirmé, sans pièce sortie et sans demande d'achat. L'avis revient en attente et peut recevoir un nouvel ordre.</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="prestataires">10. Garanties, contrats et prestataires</h2>
+<p>Exemple suivi dans cette section : des climatiseurs installés dans une agence externe. Certains sont encore sous garantie, ceux de la salle serveur sont couverts par un contrat d'entretien, les autres sont dépannés par un prestataire habituel.</p>
+
+<h3>10.1 Garantie</h3>
+<p>Sur la fiche équipement, onglet Données techniques, renseignez la <strong>fin de garantie</strong> et, si ce n'est pas le fournisseur d'achat, le <strong>garant</strong>. Tant que la garantie court :</p>
+<ul>
+  <li>le bandeau « SOUS GARANTIE » apparaît sur la fiche, l'avis et l'ordre ;</li>
+  <li>un ordre correctif est marqué « Sous garantie » et son intervention confiée au garant, à coût 0 ;</li>
+  <li>aucune demande d'achat n'est créée pour la prestation ou les pièces couvertes.</li>
+</ul>
+<p>La garantie couvre les pannes (PM01), pas l'entretien courant ni les améliorations. Le rapport <strong>Garanties des équipements</strong> liste les garanties qui expirent sous 60 jours.</p>
+
+<h3>10.2 Contrat de maintenance</h3>
+<p>Ouvrez <span class="path">Maintenance → Données de base → Contrats de maintenance</span>.</p>
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:820px">
+      <div class="tb"><span>Contrat de maintenance</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:545px">
+        <div class="l" style="left:10px;top:10px;width:130px">Code</div><div class="f off" style="left:140px;top:10px;width:120px">CT-CLIM-2026</div>
+        <div class="l" style="left:10px;top:27px;width:130px">Désignation</div><div class="f" style="left:140px;top:27px;width:260px">Entretien climatisation agences</div>
+        <div class="l" style="left:420px;top:10px;width:130px">Type de contrat</div><div class="f cmb" style="left:550px;top:10px;width:230px">Complet (préventif + dépannages)</div>
+        <div class="ck on" style="left:550px;top:27px">Actif</div>
+        <div class="l" style="left:10px;top:50px;width:130px">Prestataire</div><div class="lk" style="left:121px;top:51px">➜</div><div class="f" style="left:140px;top:50px;width:110px">F-CLIMA</div><div class="f off" style="left:255px;top:50px;width:150px">CLIMA SERVICES</div>
+        <div class="l" style="left:420px;top:50px;width:130px">Référence prestataire</div><div class="f" style="left:550px;top:50px;width:150px">CS-2026-118</div>
+        <div class="l" style="left:10px;top:67px;width:130px">Début</div><div class="f" style="left:140px;top:67px;width:90px">01/01/2026</div>
+        <div class="l" style="left:420px;top:67px;width:130px">Montant annuel HT</div><div class="f num" style="left:550px;top:67px;width:120px">1,200,000</div>
+        <div class="l" style="left:10px;top:84px;width:130px">Fin</div><div class="f" style="left:140px;top:84px;width:90px">31/12/2026</div>
+        <div class="l" style="left:420px;top:84px;width:130px">Facturation</div><div class="f cmb" style="left:550px;top:84px;width:150px">Trimestrielle</div>
+        <div class="l" style="left:10px;top:101px;width:130px">Préavis (jours)</div><div class="f num" style="left:140px;top:101px;width:60px">90</div>
+        <div class="l" style="left:420px;top:101px;width:130px">Délai d'intervention (h)</div><div class="f num" style="left:550px;top:101px;width:60px">4</div>
+        <div class="l" style="left:10px;top:118px;width:130px">Visites préventives / an</div><div class="f num" style="left:140px;top:118px;width:60px">4</div>
+        <div class="ck on" style="left:420px;top:118px">Main-d'oeuvre incluse</div>
+        <div class="ck" style="left:610px;top:118px">Pièces incluses</div>
+        <div class="f off warnbar" style="left:10px;top:139px;width:780px">Fin dans 89 j, résiliation avant le 02/10/2026 (préavis dépassé)  |  Prévu à date 907,397  |  Facturé 900,000  |  Écart -7,397  |  Échéance de facturation 300,000</div>
+
+        <div class="tab on" style="left:10px;top:162px;width:150px">Équipements couverts</div>
+        <div class="tab" style="left:160px;top:162px;width:130px">Ordres et factures</div>
+        <div class="tab" style="left:290px;top:162px;width:100px">Remarques</div>
+        <div class="fr" style="left:10px;top:181px;width:790px;height:308px"></div>
+        <div class="m" style="left:20px;top:187px;width:770px;height:268px">
+          <table>
+            <colgroup><col style="width:25px"><col style="width:120px"><col style="width:350px"></colgroup>
+            <tr><th>#</th><th>Équipement</th><th>Désignation</th></tr>
+            <tr><td class="idx">1</td><td>CLIM-0007</td><td>Climatiseur salle serveur 1</td></tr>
+            <tr><td class="idx">2</td><td>CLIM-0008</td><td>Climatiseur salle serveur 2</td></tr>
+            <tr><td class="idx">3</td><td>CLIM-0015</td><td>Climatiseur armoire réseau</td></tr>
+          </table>
+        </div>
+        <div class="b" style="left:20px;top:460px;width:120px">Ajouter une ligne</div>
+        <div class="b" style="left:145px;top:460px;width:120px">Supprimer la ligne</div>
+        <div class="b" style="left:6px;top:518px;width:65px">OK</div>
+        <div class="b" style="left:76px;top:518px;width:65px">Annuler</div>
+
+        <div class="pin" style="left:785px;top:7px">1</div>
+        <div class="pin" style="left:615px;top:98px">2</div>
+        <div class="pin" style="left:760px;top:115px">3</div>
+        <div class="pin" style="left:795px;top:136px">4</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Contrat d'entretien complet couvrant trois climatiseurs, consulté le 03/10/2026.</figcaption>
+</figure>
+<ol class="legend">
+  <li><span>1</span><div><strong>Type</strong> : Préventif (s'applique aux ordres PM02 et PM04), Dépannage (PM01) ou Complet (les trois). Les améliorations PM03 sont toujours hors contrat.</div></li>
+  <li><span>2</span><div><strong>Délai d'intervention</strong> : la fin prévue des ordres correctifs couverts ne le dépasse pas.</div></li>
+  <li><span>3</span><div><strong>Couverture</strong> : main-d'oeuvre incluse = prestations à coût 0, sans demande d'achat ; pièces incluses = composants achetés non commandés.</div></li>
+  <li><span>4</span><div><strong>Synthèse</strong> : jours restants et date limite de résiliation, montant prévu au prorata des jours écoulés, montant facturé (factures − avoirs portant le code du contrat), écart, montant d'une échéance.</div></li>
+</ol>
+<ul>
+  <li>Un équipement ne peut figurer que dans <strong>un seul contrat actif</strong> sur une même période.</li>
+  <li>Pour suivre le facturé, saisissez le code du contrat dans le champ <strong>Contrat de maintenance</strong> des lignes de facture fournisseur du contrat.</li>
+  <li>L'onglet <strong>Ordres et factures</strong> liste les ordres rattachés au contrat et ses factures.</li>
+  <li>Le rapport <strong>Contrats de maintenance</strong> signale les contrats échus, ceux dont le préavis est dépassé et ceux à décider dans les 30 jours.</li>
+</ul>
+
+<h3>10.3 Prestataire attitré</h3>
+<p>Sur la fiche équipement, le <strong>prestataire de maintenance attitré</strong> est proposé dès qu'une opération passe en Externe sans prestataire, et sur les demandes d'achat de prestations. L'ordre de priorité est : garant (si sous garantie), titulaire du contrat, prestataire attitré.</p>
+
+<h3>10.4 Envoyer un équipement en atelier externe</h3>
+<p>Quand l'appareil part chez le prestataire, utilisez <strong>Envoi / retour prestataire</strong> (fiche équipement, ordre, ou menu Maintenance).</p>
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:560px">
+      <div class="tb"><span>Envoi chez un prestataire</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:300px">
+        <div class="l" style="left:10px;top:10px;width:130px">Équipement</div><div class="f" style="left:140px;top:10px;width:120px">CLIM-0012</div><div class="f off" style="left:265px;top:10px;width:270px">Climatiseur Daikin 24 000 BTU</div>
+        <div class="f off" style="left:140px;top:27px;width:395px">Équipement sur site : saisissez l'envoi.</div>
+        <div class="l" style="left:10px;top:52px;width:130px">Prestataire</div><div class="f" style="left:140px;top:52px;width:120px">F-FROID</div><div class="f off" style="left:265px;top:52px;width:270px">FROIDTECH SARL</div>
+        <div class="l" style="left:10px;top:69px;width:130px">Ordre (option)</div><div class="f" style="left:140px;top:69px;width:80px">245</div>
+        <div class="l" style="left:10px;top:86px;width:130px">Date d'envoi</div><div class="f" style="left:140px;top:86px;width:100px">03/10/2026</div>
+        <div class="l" style="left:10px;top:103px;width:130px">Retour prévu</div><div class="f" style="left:140px;top:103px;width:100px">17/10/2026</div>
+        <div class="l" style="left:10px;top:120px;width:130px">Motif / commentaire</div><div class="f" style="left:140px;top:120px;width:395px">Compresseur à remplacer en atelier (garantie)</div>
+        <div class="b" style="left:10px;top:268px;width:150px">Enregistrer l'envoi</div>
+        <div class="b" style="left:165px;top:268px;width:90px">Fermer</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Le prestataire proposé est le garant, l'appareil étant sous garantie.</figcaption>
+</figure>
+<ul>
+  <li>À l'envoi, l'équipement passe au statut <strong>Chez le prestataire</strong> ; le bandeau de sa fiche indique où il est et depuis quand.</li>
+  <li>Au retour, rouvrez le même écran sur l'équipement : il se met en mode <strong>retour</strong>. Saisissez la date et un commentaire ; l'équipement reprend son statut d'avant l'envoi.</li>
+  <li>Un équipement déjà parti ne peut pas être renvoyé, et un retour ne peut pas précéder l'envoi.</li>
+  <li>Le rapport <strong>Équipements envoyés chez les prestataires</strong> montre les appareils dehors, la durée d'immobilisation et les retours en retard.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="immo">11. Immobiliser une réparation</h2>
+<p>Certains travaux augmentent la valeur d'un bien (remplacement d'une unité extérieure, réfection complète) et doivent être immobilisés plutôt que passés en charges. Cochez <strong>À immobiliser</strong> sur l'ordre (coché d'office pour un PM03) et, si besoin, indiquez un compte de règlement propre à l'ordre.</p>
+<p>À la <strong>clôture</strong> de l'ordre, une écriture de règlement transfère ses coûts comptabilisés vers ce compte, ou à défaut vers le compte d'immobilisations en cours des paramètres :</p>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Compte</th><th>Débit</th><th>Crédit</th></tr>
+  <tr><td>Compte de règlement (immobilisations en cours)</td><td class="num">30,000</td><td></td></tr>
+  <tr><td>Compte de charges de maintenance (centre de coûts de l'ordre)</td><td></td><td class="num">30,000</td></tr>
+</table></div>
+<p>Sont transférés : les sorties de pièces nettes des retours, les factures fournisseurs nettes des avoirs et la main-d'oeuvre réellement comptabilisée, chacun depuis le compte où il a été passé. Le n° d'écriture et le montant apparaissent dans l'onglet Coûts.</p>
+<div class="note warn">
+  <strong>Fiche d'immobilisation</strong>
+  <p>Le module Immobilisations de SAP n'est pas utilisé dans la société : l'activation du bien (création ou mise à jour de la fiche d'immobilisation) reste à faire par la comptabilité à partir du compte d'en-cours.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="mesures">12. Relevés de compteurs et mesures</h2>
+<p>Ouvrez <span class="path">Maintenance → Relevés de compteurs et mesures</span> (ou <strong>Saisir un relevé</strong> sur la fiche équipement). Choisissez l'équipement et le point, saisissez la date, l'heure et la valeur, puis <strong>Enregistrer le relevé</strong>. Le dernier relevé et l'historique du point s'affichent.</p>
+<ul>
+  <li>Un <strong>compteur</strong> ne diminue jamais et se saisit dans l'ordre chronologique. Il déclenche les plans sur compteur.</li>
+  <li>Une <strong>mesure</strong> hors des limites du point propose de créer un avis (priorité 2) rattaché au relevé.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="preventif">13. Maintenance préventive</h2>
+<h3>13.1 Plans de maintenance</h3>
+<p>Ouvrez <span class="path">Maintenance → Maintenance préventive → Plans de maintenance</span>.</p>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Champ</th><th>Plan temps</th><th>Plan compteur</th></tr>
+  <tr><td>Cycle</td><td>Tous les N jours, semaines, mois ou ans</td><td>Toutes les N unités d'un point compteur (ex. 500 h)</td></tr>
+  <tr><td>Horizon d'appel</td><td>L'ordre est proposé N jours avant l'échéance</td><td>L'ordre est proposé N unités avant l'échéance</td></tr>
+  <tr><td>Départ</td><td>Date de début du cycle ; 1re échéance = début + cycle</td><td>Compteur de début ; 1re échéance = début + cycle</td></tr>
+</table></div>
+<p>Le plan porte aussi l'équipement, la <strong>gamme</strong> (opérations et pièces copiées dans chaque ordre), le type d'ordre (PM02 par défaut), la priorité et le poste de travail. Le champ <strong>Échéance suivante depuis</strong> choisit le mode de calcul :</p>
+<ul>
+  <li><strong>Date planifiée</strong> : l'échéance suivante est calculée dès l'appel (rythme fixe, même si l'ordre est réalisé en retard).</li>
+  <li><strong>Date de clôture technique</strong> : l'échéance suivante part de la date réelle de réalisation ; un seul ordre ouvert à la fois.</li>
+</ul>
+<p>Les boutons <strong>Appeler maintenant</strong> et <strong>Ignorer l'échéance</strong> agissent sur ce plan ; la grille du bas liste ses appels.</p>
+
+<h3>13.2 Ordonnancement</h3>
+<p>Ouvrez <span class="path">Maintenance → Maintenance préventive → Ordonnancement des plans</span>.</p>
+<figure class="shot">
+  <div class="frame">
+    <div class="win" style="width:960px">
+      <div class="tb"><span>Ordonnancement des plans de maintenance</span><span class="x">_ ▢ ✕</span></div>
+      <div class="body" style="height:290px">
+        <div class="l" style="left:10px;top:10px;width:120px">Échéances jusqu'au</div><div class="f" style="left:130px;top:10px;width:100px">02/11/2026</div>
+        <div class="b" style="left:240px;top:8px;width:100px">Actualiser</div>
+        <div class="l" style="left:350px;top:10px;width:590px">Un plan est « à appeler » quand son échéance moins l'horizon d'appel tombe avant cette date…</div>
+        <div class="m" style="left:10px;top:35px;width:930px;height:205px">
+          <table>
+            <colgroup><col style="width:90px"><col style="width:220px"><col style="width:110px"><col style="width:140px"><col style="width:85px"><col style="width:85px"><col style="width:70px"><col style="width:70px"><col style="width:120px"></colgroup>
+            <tr><th>Plan</th><th>Désignation</th><th>Type</th><th>Échéance suivante depuis</th><th>Équipement</th><th>Échéance</th><th>Échéance cpt</th><th>Cpt actuel</th><th>État</th></tr>
+            <tr class="sel"><td>PL-CLIM-T</td><td>Entretien trimestriel climatiseurs</td><td>Temps (calendrier)</td><td>Date planifiée</td><td>CLIM-0007</td><td>10/10/2026</td><td class="n">0</td><td class="n">0</td><td>À appeler</td></tr>
+            <tr><td>PL-GE-500</td><td>Vidange groupe électrogène 500 h</td><td>Compteur</td><td>Date planifiée</td><td>GE-0001</td><td>21/10/2026</td><td class="n">1,500</td><td class="n">1,462</td><td>À appeler</td></tr>
+            <tr><td>PL-CHAR-M</td><td>Contrôle mensuel chariot élévateur</td><td>Temps (calendrier)</td><td>Date de clôture technique</td><td>CHAR-0002</td><td>28/10/2026</td><td class="n">0</td><td class="n">0</td><td>Ordre 251 en cours</td></tr>
+            <tr><td>PL-EXT-A</td><td>Vérification annuelle extincteurs</td><td>Temps (calendrier)</td><td>Date planifiée</td><td>AG-YOP-EXT</td><td>15/01/2027</td><td class="n">0</td><td class="n">0</td><td>Pas encore dû</td></tr>
+          </table>
+        </div>
+        <div class="b" style="left:10px;top:258px;width:180px">Appeler le plan sélectionné</div>
+        <div class="b" style="left:195px;top:258px;width:180px">Appeler tous les plans dus</div>
+        <div class="b" style="left:380px;top:258px;width:140px">Ignorer l'échéance</div>
+        <div class="b" style="left:525px;top:258px;width:110px">Ouvrir le plan</div>
+        <div class="b" style="left:640px;top:258px;width:90px">Fermer</div>
+      </div>
+    </div>
+  </div>
+  <figcaption>Vue d'ensemble des plans actifs (fenêtre raccourcie en hauteur). La date d'un plan compteur est estimée d'après l'estimation annuelle du point.</figcaption>
+</figure>
+<ul>
+  <li><strong>Appeler tous les plans dus</strong> crée un ordre préventif par plan « À appeler » et affiche le bilan (ordres créés, erreurs éventuelles).</li>
+  <li>Un plan sur un équipement sous contrat préventif produit des ordres rattachés au contrat, avec des prestations à coût 0 si la main-d'oeuvre est incluse.</li>
+  <li><strong>Ignorer l'échéance</strong> saute un cycle sans créer d'ordre (trace « Ignoré » dans l'historique).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="rapports">14. Rapports et indicateurs</h2>
+<p>Ouvrez <span class="path">Maintenance → Rapports</span>. Une seule fenêtre propose toutes les vues ; filtrez par période, équipement, statut, type et poste de travail, puis <strong>Rechercher</strong>. Un double-clic ou une flèche ouvre l'ordre, l'avis, l'équipement ou le contrat de la ligne ; les totaux s'affichent sous la grille.</p>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Rapport</th><th>Usage</th></tr>
+  <tr><td>Liste des ordres</td><td>Tous les ordres de la période, avec coûts prévus et réels et indicateur de retard.</td></tr>
+  <tr><td>Carnet d'ordres en retard</td><td>Ordres créés ou lancés dont la fin prévue est dépassée, par priorité.</td></tr>
+  <tr><td>Liste des avis</td><td>Avis, durée de panne, dommage, cause, ordre lié.</td></tr>
+  <tr><td>Structure technique</td><td>Arborescence des sites et équipements.</td></tr>
+  <tr><td>Contrats de maintenance</td><td>Échéance, date limite de résiliation, prévu au prorata, facturé, état.</td></tr>
+  <tr><td>Équipements envoyés chez les prestataires</td><td>Appareils dehors, durée, retours en retard.</td></tr>
+  <tr><td>Garanties des équipements</td><td>Fin de garantie, garant, jours restants, ordres sous garantie.</td></tr>
+  <tr><td>Indicateurs équipements</td><td>Nombre d'ordres et de pannes, arrêt, MTTR, MTBF, disponibilité et coûts par équipement.</td></tr>
+  <tr><td>Coûts par mois et type d'ordre</td><td>Prévu, réel par nature et écart.</td></tr>
+  <tr><td>Confirmations de temps</td><td>Heures et montants par salarié, poste et ordre.</td></tr>
+  <tr><td>Consommations de pièces</td><td>Sorties et retours de stock imputés aux ordres.</td></tr>
+  <tr><td>Historique des relevés</td><td>Mesures et compteurs, avis créés.</td></tr>
+  <tr><td>Historique des appels de plans</td><td>Appels réalisés, en cours ou ignorés.</td></tr>
+</table></div>
+<p>Calcul des indicateurs sur la période choisie :</p>
+<ul>
+  <li><strong>Arrêt</strong> : somme des durées de panne des avis avec arrêt de l'équipement (une panne en cours compte jusqu'à maintenant).</li>
+  <li><strong>MTTR</strong> (temps moyen de réparation) = arrêt ÷ nombre de pannes.</li>
+  <li><strong>MTBF</strong> (temps moyen entre pannes) = (heures de la période − arrêt) ÷ nombre de pannes.</li>
+  <li><strong>Disponibilité</strong> = (heures de la période − arrêt) ÷ heures de la période.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="compta">15. Écritures et documents générés</h2>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Action</th><th>Document SAP</th><th>Comptabilisation</th></tr>
+  <tr><td>Sortie de pièces</td><td>Sortie de stock</td><td>Débit compte de charges de maintenance (centre de coûts de l'ordre) / Crédit stock</td></tr>
+  <tr><td>Retour de pièces</td><td>Entrée de stock</td><td>Débit stock / Crédit compte de charges, au coût de sortie</td></tr>
+  <tr><td>Demandes d'achat</td><td>Demande d'achat (articles, prestations)</td><td>Aucune ; la facture fournisseur comptabilisera la charge</td></tr>
+  <tr><td>Confirmation (si activé)</td><td>Écriture au journal</td><td>Débit charges de main-d'oeuvre (centre de coûts) / Crédit imputation de main-d'oeuvre (compte du poste de travail ou des paramètres)</td></tr>
+  <tr><td>Correction d'heures</td><td>Écriture au journal</td><td>Sens inverse</td></tr>
+  <tr><td>Clôture d'un ordre à immobiliser</td><td>Écriture au journal</td><td>Débit compte de règlement / Crédit des comptes de charges de l'ordre</td></tr>
+</table></div>
+<p>Chaque action (document SAP, mise à jour de l'ordre, de l'avis, du plan) est faite d'un bloc : en cas d'erreur, rien n'est enregistré.</p>
+
+<!-- ============================================================ -->
+<h2 id="erreurs">16. Messages et solutions</h2>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Message</th><th>Que faire</th></tr>
+  <tr><td>« Enregistrez d'abord vos modifications (bouton Mettre à jour). »</td><td>Les boutons d'action exigent une fiche enregistrée et sans modification en cours.</td></tr>
+  <tr><td>« Ajoutez au moins une opération avant de lancer l'ordre. »</td><td>Saisissez une opération ou reprenez une gamme, puis Mettre à jour.</td></tr>
+  <tr><td>« Les mouvements de stock ne sont possibles que sur un ordre lancé (REL). »</td><td>Lancez l'ordre, ou rouvrez-le (Annuler la TECO) s'il est clôturé techniquement.</td></tr>
+  <tr><td>« L'article … n'est pas géré en stock : passez par une demande d'achat. »</td><td>Mettez le composant en approvisionnement Achat.</td></tr>
+  <tr><td>« Renseignez le compte de charges de maintenance dans Maintenance → Paramètres. »</td><td>Complétez les paramètres (administrateur).</td></tr>
+  <tr><td>« Rien à commander : les … ligne(s) externes sont couvertes par la garantie / le contrat. »</td><td>Normal : contactez directement le garant ou le titulaire du contrat.</td></tr>
+  <tr><td>« Documents d'achat encore ouverts sur l'ordre : … »</td><td>Faites réceptionner et facturer les commandes, ou clôturez les demandes inutiles, puis Clôturer.</td></tr>
+  <tr><td>« Des temps ont été confirmés sur l'ordre : il ne peut plus être annulé. »</td><td>Clôturez l'ordre au lieu de l'annuler.</td></tr>
+  <tr><td>« L'ordre … n'est pas clôturé techniquement : clôturez-le d'abord. »</td><td>Un avis lié à un ordre en cours se termine avec la clôture technique de l'ordre.</td></tr>
+  <tr><td>« Un compteur ne peut pas diminuer : dernier relevé … »</td><td>Vérifiez la valeur saisie. Le remplacement d'un compteur n'est pas géré : signalez-le à l'administrateur.</td></tr>
+  <tr><td>« L'équipement est déjà chez … depuis le … »</td><td>Enregistrez d'abord le retour de l'envoi en cours.</td></tr>
+  <tr><td>« L'équipement … est déjà couvert par le contrat actif … sur cette période. »</td><td>Retirez-le de l'autre contrat ou ajustez les dates.</td></tr>
+  <tr><td>« … le compte … est un compte collectif (écritures manuelles interdites). »</td><td>Choisissez un compte de détail autorisé en saisie manuelle.</td></tr>
+  <tr><td>« Ordre à immobiliser : renseignez le compte de règlement… »</td><td>Indiquez un compte sur l'ordre ou le compte d'immobilisations en cours dans les paramètres.</td></tr>
+  <tr><td>« Le plan … a déjà un ordre en cours : la prochaine échéance sera calculée à sa clôture technique. »</td><td>Plan basé sur la clôture technique : réalisez et clôturez d'abord l'ordre en cours.</td></tr>
+</table></div>
+<p>En cas d'erreur inattendue, le détail technique est enregistré dans le fichier <code>%TEMP%\MaintenanceAddon.log</code> du poste : transmettez-le à l'administrateur.</p>
+</main>
+</div>

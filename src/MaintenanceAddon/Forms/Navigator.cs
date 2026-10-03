@@ -1,0 +1,65 @@
+using System;
+using System.Collections.Generic;
+using SAPbouiCOM;
+using MaintenanceAddon.Core;
+
+namespace MaintenanceAddon.Forms
+{
+    /// <summary>
+    /// Ouverture des écrans de l'add-on depuis n'importe quel autre écran
+    /// (flèches de lien, double-clic dans les rapports, enchaînements).
+    /// </summary>
+    internal static class Navigator
+    {
+        private static readonly Dictionary<string, UdoForm> Forms = new Dictionary<string, UdoForm>();
+
+        public static Application App;
+        public static EquipmentForm Equipment;
+        public static NotificationForm Notification;
+        public static OrderForm Order;
+        public static MeasurementForm Measurement;
+        public static ConfirmationForm Confirmation;
+        public static GoodsMovementForm Goods;
+        public static ShipmentForm Shipment;
+
+        public static void Register(UdoForm form)
+        {
+            Forms[form.ObjectCode] = form;
+        }
+
+        /// <summary>Ouvre l'objet (code UDO) sur la clé donnée (DocEntry ou Code).</summary>
+        public static void Open(string objectCode, string key)
+        {
+            if (Forms.TryGetValue(objectCode, out UdoForm form))
+            {
+                form.OpenKey(key);
+                return;
+            }
+            // Objets de paramétrage : fenêtre par défaut SAP
+            App.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, objectCode, key ?? "");
+        }
+
+        public static void Show(string objectCode)
+        {
+            if (Forms.TryGetValue(objectCode, out UdoForm form))
+                form.Show();
+            else
+                OpenDefaultForm(objectCode);
+        }
+
+        /// <summary>Fenêtre par défaut SAP d'un objet de paramétrage (grille éditable).</summary>
+        public static void OpenDefaultForm(string objectCode)
+        {
+            try
+            {
+                App.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, objectCode, "");
+            }
+            catch (Exception ex)
+            {
+                // Repli : menu Outils → Fenêtres par défaut
+                Program.Log("OpenForm " + objectCode + " : " + ex.Message);
+                App.ActivateMenuItem(objectCode);
+            }
+        }
+    }
+}

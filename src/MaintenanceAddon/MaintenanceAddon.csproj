@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{7C1D9E52-3A4B-4F6E-9B0C-2E8D5A1F6C30}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>MaintenanceAddon</RootNamespace>
+    <AssemblyName>MaintenanceAddon</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Constants.cs" />
+    <Compile Include="Core\DiCompany.cs" />
+    <Compile Include="Core\Sql.cs" />
+    <Compile Include="Core\Udo.cs" />
+    <Compile Include="Core\Ui.cs" />
+    <Compile Include="Core\UdoForm.cs" />
+    <Compile Include="Core\SimpleForm.cs" />
+    <Compile Include="Core\SboApplication.cs" />
+    <Compile Include="Setup\MetadataSetup.cs" />
+    <Compile Include="Models\Codes.cs" />
+    <Compile Include="Services\SettingsService.cs" />
+    <Compile Include="Services\NotificationService.cs" />
+    <Compile Include="Services\OrderService.cs" />
+    <Compile Include="Services\PlanService.cs" />
+    <Compile Include="Services\MeasurementService.cs" />
+    <Compile Include="Services\ReportService.cs" />
+    <Compile Include="Services\ContractService.cs" />
+    <Compile Include="Forms\ContractForm.cs" />
+    <Compile Include="Forms\ShipmentForm.cs" />
+    <Compile Include="Forms\FormIds.cs" />
+    <Compile Include="Forms\Navigator.cs" />
+    <Compile Include="Forms\FuncLocForm.cs" />
+    <Compile Include="Forms\EquipmentForm.cs" />
+    <Compile Include="Forms\TaskListForm.cs" />
+    <Compile Include="Forms\PlanForm.cs" />
+    <Compile Include="Forms\NotificationForm.cs" />
+    <Compile Include="Forms\OrderForm.cs" />
+    <Compile Include="Forms\ConfirmationForm.cs" />
+    <Compile Include="Forms\GoodsMovementForm.cs" />
+    <Compile Include="Forms\MeasurementForm.cs" />
+    <Compile Include="Forms\SchedulingForm.cs" />
+    <Compile Include="Forms\ListForm.cs" />
+    <Compile Include="Forms\SettingsForm.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Icône du menu, intégrée à l'exe (le package ne contient que l'exe) -->
+    <EmbeddedResource Include="Resources\Maintenance.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Types SAP intégrés à l'exe : le package SAP ne contient que l'exe -->
+    <COMReference Include="SAPbobsCOM">
+      <Guid>{FC8030BE-F5D2-4B8E-8F92-44228FE30100}</Guid>
+      <VersionMajor>10</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="SAPbouiCOM">
+      <Guid>{6048236A-956D-498D-A6F1-9C81C13AB6E8}</Guid>
+      <VersionMajor>10</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
