@@ -15,7 +15,7 @@ namespace MaintenanceAddon.Core
             return guiApi.GetApplication(-1);
         }
 
-        // Menu standard "Modules" de SAP B1 (menu principal à gauche) // 
+        // Menu standard "Modules" de SAP B1 (menu principal à gauche)
         private const string ModulesMenuUid = "43520";
 
         public static void CreateMenus(Application app)
