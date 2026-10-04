@@ -324,6 +324,15 @@ html { scroll-behavior: smooth; }
 
 <h3>3.2 Équipements</h3>
 <p>Ouvrez <span class="path">Maintenance → Données de base → Équipements</span>. La fiche s'utilise comme toute fiche SAP : mode Création à l'ouverture, recherche par le menu Rechercher, navigation par les flèches de la barre d'outils.</p>
+<div class="note tip">
+  <strong>Valable pour tous les écrans de l'add-on</strong>
+  <p>Postes techniques, équipements, gammes, plans, contrats, avis et ordres fonctionnent de la même façon :</p>
+  <ul>
+    <li>Après <b>Créer</b>, l'écran reste en création pour la saisie suivante, avec ses valeurs par défaut ; le n° du document créé s'affiche dans la barre d'état. Pour le rouvrir : flèche <b>Dernier enregistrement</b> ou <b>Rechercher</b>.</li>
+    <li>Si une saisie est incomplète (désignation, description courte, équipement…), le message s'affiche en rouge dans la barre d'état et <b>rien n'est enregistré</b> : complétez puis cliquez à nouveau sur Créer.</li>
+    <li>Le bouton <b>Ajouter une ligne</b> crée une ligne pré-remplie (n° d'opération suivant, clé Interne, une personne, magasin, approvisionnement Stock…) : complétez-la. Une ligne laissée sans description (opérations) ou sans article (composants) est retirée à l'enregistrement.</li>
+  </ul>
+</div>
 
 <figure class="shot">
   <div class="frame">
@@ -390,7 +399,8 @@ html { scroll-behavior: smooth; }
   <li><div>Ouvrez <span class="path">Maintenance → Avis de maintenance</span> (ou <strong>Créer un avis</strong> depuis la fiche équipement).</div></li>
   <li><div>Choisissez le <strong>type</strong>, l'<strong>équipement</strong> (le poste technique et le poste de travail se remplissent) et la <strong>priorité</strong> : la fin souhaitée se calcule avec le délai de la priorité.</div></li>
   <li><div>Saisissez une <strong>description courte</strong> et, dans les onglets, le détail, l'arrêt machine et les codes catalogue.</div></li>
-  <li><div>Cliquez sur <strong>Ajouter</strong>. L'avis reste affiché pour enchaîner sur <strong>Créer l'ordre</strong>.</div></li>
+  <li><div>Cliquez sur <strong>Créer</strong>. Comme dans SAP, l'écran repasse aussitôt en création d'un nouvel avis ; la barre d'état affiche « Avis de maintenance n° … créé(e) ».</div></li>
+  <li><div>Pour enchaîner sur <strong>Créer l'ordre</strong>, rouvrez l'avis : flèche <strong>Dernier enregistrement</strong> de la barre d'outils, ou menu <strong>Rechercher</strong> avec son n°.</div></li>
 </ol>
 
 <figure class="shot">
@@ -766,7 +776,7 @@ html { scroll-behavior: smooth; }
 
 <!-- ============================================================ -->
 <h2 id="mesures">12. Relevés de compteurs et mesures</h2>
-<p>Ouvrez <span class="path">Maintenance → Relevés de compteurs et mesures</span> (ou <strong>Saisir un relevé</strong> sur la fiche équipement). Choisissez l'équipement et le point, saisissez la date, l'heure et la valeur, puis <strong>Enregistrer le relevé</strong>. Le dernier relevé et l'historique du point s'affichent.</p>
+<p>Ouvrez <span class="path">Maintenance → Relevés de compteurs et mesures</span> (ou <strong>Saisir un relevé</strong> sur la fiche équipement). Choisissez l'équipement et le point, saisissez la date, l'heure et la valeur (un nombre ; 0 est une valeur valable, un champ vide ne l'est pas), puis <strong>Enregistrer le relevé</strong>. Le dernier relevé et l'historique du point s'affichent.</p>
 <ul>
   <li>Un <strong>compteur</strong> ne diminue jamais et se saisit dans l'ordre chronologique. Il déclenche les plans sur compteur.</li>
   <li>Une <strong>mesure</strong> hors des limites du point propose de créer un avis (priorité 2) rattaché au relevé.</li>
@@ -870,6 +880,10 @@ html { scroll-behavior: smooth; }
 <div class="table-wrap"><table class="doc">
   <tr><th>Message</th><th>Que faire</th></tr>
   <tr><td>« Enregistrez d'abord vos modifications (bouton Mettre à jour). »</td><td>Les boutons d'action exigent une fiche enregistrée et sans modification en cours.</td></tr>
+  <tr><td>« Enregistrez ou recherchez d'abord un enregistrement. »</td><td>L'écran est en création (par exemple juste après Créer) : rouvrez le document avec la flèche Dernier enregistrement ou Rechercher.</td></tr>
+  <tr><td>« Saisissez la description courte de l'avis. », « Indiquez l'équipement ou le poste technique… », « Saisissez la désignation… »</td><td>Rien n'a été enregistré : complétez le champ indiqué puis cliquez à nouveau sur Créer.</td></tr>
+  <tr><td>« Des modifications ne sont pas enregistrées dans … Les abandonner ? »</td><td>Un autre écran veut ouvrir un document dans cette fenêtre : Non pour revenir à votre saisie et l'enregistrer, Oui pour l'abandonner.</td></tr>
+  <tr><td>« La valeur relevée doit être un nombre. »</td><td>Saisissez uniquement des chiffres (virgule ou point pour les décimales).</td></tr>
   <tr><td>« Ajoutez au moins une opération avant de lancer l'ordre. »</td><td>Saisissez une opération ou reprenez une gamme, puis Mettre à jour.</td></tr>
   <tr><td>« Les mouvements de stock ne sont possibles que sur un ordre lancé (REL). »</td><td>Lancez l'ordre, ou rouvrez-le (Annuler la TECO) s'il est clôturé techniquement.</td></tr>
   <tr><td>« L'article … n'est pas géré en stock : passez par une demande d'achat. »</td><td>Mettez le composant en approvisionnement Achat.</td></tr>
