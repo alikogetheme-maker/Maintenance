@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using SAPbouiCOM;
 using MaintenanceAddon.Core;
@@ -165,7 +165,7 @@ namespace MaintenanceAddon.Forms
             }
             catch (Exception ex)
             {
-                App.MessageBox("L'opération est enregistrée, mais l'écran appelant n'a pas pu être actualisé : " + ex.Message);
+                Program.Message(App, "L'opération est enregistrée, mais l'écran appelant n'a pas pu être actualisé : " + ex.Message);
             }
         }
     }

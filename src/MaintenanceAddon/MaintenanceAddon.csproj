@@ -43,6 +43,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Core\DiCompany.cs" />
+    <Compile Include="Core\EventHub.cs" />
     <Compile Include="Core\Sql.cs" />
     <Compile Include="Core\Udo.cs" />
     <Compile Include="Core\Ui.cs" />

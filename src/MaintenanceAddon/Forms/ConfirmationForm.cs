@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using SAPbouiCOM;
@@ -166,7 +166,7 @@ namespace MaintenanceAddon.Forms
             }
             catch (Exception ex)
             {
-                App.MessageBox("La confirmation est enregistrée, mais l'ordre n'a pas pu être actualisé : " + ex.Message);
+                Program.Message(App, "La confirmation est enregistrée, mais l'ordre n'a pas pu être actualisé : " + ex.Message);
             }
         }
     }

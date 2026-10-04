@@ -1,4 +1,4 @@
-using SAPbouiCOM;
+﻿using SAPbouiCOM;
 using MaintenanceAddon.Models;
 
 namespace MaintenanceAddon.Core
@@ -94,7 +94,10 @@ namespace MaintenanceAddon.Core
             item.DisplayDesc = true;
             ComboBox c = (ComboBox)item.Specific;
             c.DataBind.SetBound(true, Table, alias);
-            Fill(c, values, blank);
+            // Champ avec valeurs valides définies dans SAP : la liste est déjà
+            // remplie par le client et ne peut pas être vidée (erreur -10).
+            if (c.ValidValues.Count == 0)
+                Fill(c, values, blank);
             return c;
         }
 
@@ -217,13 +220,24 @@ namespace MaintenanceAddon.Core
             c.TitleObject.Caption = caption;
             c.Width = width;
             c.Editable = editable;
+            if (type == BoFormItemTypes.it_CHECK_BOX)
+            {
+                // Avant la liaison, sinon une case décochée est enregistrée vide au lieu de "N"
+                c.ValOn = "Y";
+                c.ValOff = "N";
+            }
             c.DataBind.SetBound(true, childTable, alias);
             return c;
         }
 
         public Grid Grid(string id, string dtId, int left, int top, int width, int height)
         {
-            F.DataSources.DataTables.Add(dtId);
+            // La table peut déjà avoir été créée par l'écran (colonnes définies par code)
+            bool exists = false;
+            for (int i = 0; i < F.DataSources.DataTables.Count && !exists; i++)
+                exists = F.DataSources.DataTables.Item(i).UniqueID == dtId;
+            if (!exists)
+                F.DataSources.DataTables.Add(dtId);
             Item item = Add(id, BoFormItemTypes.it_GRID, left, top, width, height);
             Grid g = (Grid)item.Specific;
             g.SelectionMode = BoMatrixSelect.ms_Single;

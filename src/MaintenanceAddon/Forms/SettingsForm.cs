@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using SAPbouiCOM;
 using MaintenanceAddon.Core;
@@ -142,7 +142,7 @@ namespace MaintenanceAddon.Forms
                 int h = (int)Sql.ParseDouble(Uds("udP" + (i + 1)));
                 if (h <= 0)
                 {
-                    App.MessageBox("Le délai de la priorité " + (i + 1) + " doit être positif.");
+                    Program.Message(App, "Le délai de la priorité " + (i + 1) + " doit être positif.");
                     return;
                 }
                 s.PriorityHours[i] = h;

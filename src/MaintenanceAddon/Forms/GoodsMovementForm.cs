@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using SAPbouiCOM;
@@ -49,7 +49,7 @@ namespace MaintenanceAddon.Forms
             }
             if (_lines.Count == 0)
             {
-                App.MessageBox(issue ? "Aucun composant géré en stock sur cet ordre." : "Aucune pièce sortie à retourner sur cet ordre.");
+                Program.Message(App, issue ? "Aucun composant géré en stock sur cet ordre." : "Aucune pièce sortie à retourner sur cet ordre.");
                 return;
             }
             Open(true);
@@ -139,7 +139,7 @@ namespace MaintenanceAddon.Forms
                 double qty = Sql.ParseDouble(((EditText)m.Columns.Item("cQty").Cells.Item(row).Specific).Value);
                 if (qty < 0)
                 {
-                    App.MessageBox("Ligne " + row + " : quantité négative.");
+                    Program.Message(App, "Ligne " + row + " : quantité négative.");
                     return;
                 }
                 if (qty == 0)
@@ -163,14 +163,14 @@ namespace MaintenanceAddon.Forms
                 ? OrderService.IssueComponents(_order, moves, date.Value)
                 : OrderService.ReturnComponents(_order, moves, date.Value);
             Close();
-            App.MessageBox((_issue ? "Sortie de stock n° " : "Entrée de stock n° ") + docNum + " créée et imputée sur l'ordre.");
+            Program.Message(App, (_issue ? "Sortie de stock n° " : "Entrée de stock n° ") + docNum + " créée et imputée sur l'ordre.");
             try
             {
                 _onSaved?.Invoke();
             }
             catch (Exception ex)
             {
-                App.MessageBox("Le mouvement est enregistré, mais l'ordre n'a pas pu être actualisé : " + ex.Message);
+                Program.Message(App, "Le mouvement est enregistré, mais l'ordre n'a pas pu être actualisé : " + ex.Message);
             }
         }
     }

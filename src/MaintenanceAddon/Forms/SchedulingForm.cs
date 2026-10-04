@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using SAPbouiCOM;
@@ -196,7 +196,7 @@ namespace MaintenanceAddon.Forms
                 }
             }
             Refresh();
-            App.MessageBox(created.Count + " ordre(s) créé(s)." +
+            Program.Message(App, created.Count + " ordre(s) créé(s)." +
                            (created.Count > 0 ? "\n" + string.Join("\n", created) : "") +
                            (errors.Count > 0 ? "\n\nErreurs :\n" + string.Join("\n", errors) : ""));
         }

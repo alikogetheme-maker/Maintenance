@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using SAPbouiCOM;
 
 namespace MaintenanceAddon.Core
@@ -16,7 +16,7 @@ namespace MaintenanceAddon.Core
         protected SimpleForm(Application app)
         {
             App = app;
-            App.ItemEvent += App_ItemEvent;
+            EventHub.RegisterForm(app, FormType, App_ItemEvent);
         }
 
         protected abstract string FormType { get; }
@@ -111,7 +111,7 @@ namespace MaintenanceAddon.Core
 
         protected bool Confirm(string question)
         {
-            return App.MessageBox(question, 2, "Oui", "Non") == 1;
+            return Program.Message(App, question, true) == 1;
         }
 
         protected static string DateValue(DateTime date)
@@ -154,7 +154,7 @@ namespace MaintenanceAddon.Core
             catch (Exception ex)
             {
                 Program.Log(FormType + " : " + ex);
-                App.MessageBox(ex.Message);
+                Program.Message(App, ex.Message);
                 if (pVal.BeforeAction)
                     bubbleEvent = false;
             }

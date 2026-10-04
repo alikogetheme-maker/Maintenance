@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -52,13 +52,26 @@ namespace MaintenanceAddon.Core
         private bool _saving;
         private string _savedKey;
         private string _addedKey;
+        private string _pendingCode;
+        /// <summary>Après une création : valeurs par défaut à remettre quand SAP a vidé l'écran.</summary>
+        private bool _defaultsPending;
+
+        /// <summary>Code saisi (données de base) ou dernier document créé par l'utilisateur connecté.</summary>
+        private string LastCreatedKey()
+        {
+            if (!IsDocument)
+                return string.IsNullOrEmpty(_pendingCode) ? null : _pendingCode;
+            double entry = Sql.ScalarDbl(
+                "SELECT MAX(\"DocEntry\") FROM \"@" + HeaderTable + "\" WHERE \"UserSign\" = " +
+                "(SELECT \"USERID\" FROM \"OUSR\" WHERE \"USER_CODE\" = " + Sql.Q(DiCompany.UserCode) + ")");
+            return entry > 0 ? ((int)entry).ToString(CultureInfo.InvariantCulture) : null;
+        }
 
         protected UdoForm(Application app)
         {
             App = app;
-            App.ItemEvent += App_ItemEvent;
-            App.FormDataEvent += App_FormDataEvent;
-            App.MenuEvent += App_MenuEvent;
+            EventHub.RegisterForm(app, FormType, App_ItemEvent, App_FormDataEvent);
+            EventHub.RegisterMenu(app, App_MenuEvent);
         }
 
         // ---------------------------------------------------------------------
@@ -101,9 +114,6 @@ namespace MaintenanceAddon.Core
         /// <summary>Après un ajout ou une mise à jour réussis (clé de l'enregistrement).</summary>
         protected virtual void AfterSaved(string key, bool added) { }
 
-        /// <summary>Après ajout, rouvre l'enregistrement créé (pour enchaîner les actions).</summary>
-        protected virtual bool ReopenAfterAdd => IsDocument;
-
         // ---------------------------------------------------------------------
         // Ouverture
         // ---------------------------------------------------------------------
@@ -128,7 +138,7 @@ namespace MaintenanceAddon.Core
             Show();
             if (F.Mode == BoFormMode.fm_UPDATE_MODE || (F.Mode == BoFormMode.fm_ADD_MODE && IsDirtyAdd()))
             {
-                if (App.MessageBox("Des modifications ne sont pas enregistrées dans « " + Title + " ». Les abandonner ?", 2, "Oui", "Non") != 1)
+                if (Program.Message(App, "Des modifications ne sont pas enregistrées dans « " + Title + " ». Les abandonner ?", true) != 1)
                     return;
             }
             F.Mode = BoFormMode.fm_FIND_MODE;
@@ -143,7 +153,7 @@ namespace MaintenanceAddon.Core
             if (F.Mode != BoFormMode.fm_ADD_MODE)
             {
                 if (F.Mode == BoFormMode.fm_UPDATE_MODE &&
-                    App.MessageBox("Des modifications ne sont pas enregistrées dans « " + Title + " ». Les abandonner ?", 2, "Oui", "Non") != 1)
+                    Program.Message(App, "Des modifications ne sont pas enregistrées dans « " + Title + " ». Les abandonner ?", true) != 1)
                     return;
                 F.Mode = BoFormMode.fm_ADD_MODE;
             }
@@ -158,8 +168,9 @@ namespace MaintenanceAddon.Core
         private bool IsDirtyAdd()
         {
             // En création, on considère qu'il y a une saisie dès qu'une ligne existe
+            // (lignes affichées : la source garde un enregistrement vide en création)
             foreach (MatrixInfo mi in _matrices)
-                if (Lines(mi.Table).Size > 0)
+                if (Mat(mi.ItemId).RowCount > 0)
                     return true;
             return false;
         }
@@ -357,7 +368,7 @@ namespace MaintenanceAddon.Core
 
         protected bool Confirm(string question)
         {
-            return App.MessageBox(question, 2, "Oui", "Non") == 1;
+            return Program.Message(App, question, true) == 1;
         }
 
         protected void SetModeUpdate()
@@ -371,10 +382,16 @@ namespace MaintenanceAddon.Core
             Item item = F.Items.Item(itemId);
             if (item.Enabled != enabled)
             {
-                // Un élément actif ne peut pas être désactivé : on déplace le focus
-                if (!enabled && F.ActiveItem == itemId)
+                // Un élément actif ne peut pas être désactivé : on déplace le focus.
+                // ActiveItem n'est pas lisible quand une autre fenêtre est active.
+                if (!enabled)
                 {
-                    try { F.ActiveItem = IsDocument ? DocNumItem : "eName"; } catch { }
+                    try
+                    {
+                        if (F.ActiveItem == itemId)
+                            F.ActiveItem = IsDocument ? DocNumItem : "eName";
+                    }
+                    catch { }
                 }
                 try
                 {
@@ -528,6 +545,11 @@ namespace MaintenanceAddon.Core
             Matrix m = Mat(mi.ItemId);
             m.FlushToDataSource();
             DBDataSource ds = Lines(mi.Table);
+            // En création, SAP laisse un enregistrement vide non affiché : la nouvelle
+            // ligne serait insérée après lui et ses valeurs par défaut perdues
+            if (m.RowCount == 0)
+                while (ds.Size > 0)
+                    ds.RemoveRecord(0);
             int max = 0;
             for (int i = 0; i < ds.Size; i++)
             {
@@ -622,7 +644,7 @@ namespace MaintenanceAddon.Core
             catch (Exception ex)
             {
                 Program.Log(FormType + " : " + ex);
-                App.MessageBox(ex.Message);
+                Program.Message(App, ex.Message);
                 if (pVal.BeforeAction)
                     bubbleEvent = false;
             }
@@ -643,6 +665,7 @@ namespace MaintenanceAddon.Core
                             return false;
                         }
                         _adding = F.Mode == BoFormMode.fm_ADD_MODE;
+                        _pendingCode = IsDocument ? null : H("Code");
                         _saving = true;
                         _savedKey = _adding ? null : CurrentKey;
                         _addedKey = null;
@@ -671,6 +694,17 @@ namespace MaintenanceAddon.Core
 
         private void After(ItemEvent e)
         {
+            // Premier événement après une création : SAP a vidé l'écran, on remet les valeurs par défaut
+            if (_defaultsPending && !(e.EventType == BoEventTypes.et_ITEM_PRESSED && e.ItemUID == "1"))
+            {
+                _defaultsPending = false;
+                if (F.Mode == BoFormMode.fm_ADD_MODE)
+                {
+                    SetDefaults();
+                    SafeRefresh();
+                }
+            }
+
             switch (e.EventType)
             {
                 case BoEventTypes.et_ITEM_PRESSED:
@@ -694,15 +728,18 @@ namespace MaintenanceAddon.Core
                             catch (Exception ex)
                             {
                                 Program.Log(FormType + " AfterSaved : " + ex);
-                                App.MessageBox("L'enregistrement est bien fait, mais le traitement complémentaire a échoué : " + ex.Message);
+                                Program.Message(App, "L'enregistrement est bien fait, mais le traitement complémentaire a échoué : " + ex.Message);
                             }
                         }
                         if (added)
                         {
-                            if (ReopenAfterAdd && !string.IsNullOrEmpty(key))
-                                OpenKey(key);
-                            else if (F != null && F.Mode == BoFormMode.fm_ADD_MODE)
-                                InitAddMode();
+                            // Comportement standard SAP : l'écran repasse en création (vidé par SAP
+                            // APRÈS cet événement). Les valeurs par défaut sont remises au prochain
+                            // événement de l'écran ; le document créé se retrouve par la navigation.
+                            _defaultsPending = true;
+                            if (IsDocument && !string.IsNullOrEmpty(key))
+                                Msg(Title + " n° " + Sql.ScalarStr("SELECT \"DocNum\" FROM \"@" + HeaderTable + "\" WHERE \"DocEntry\" = " + key) +
+                                    " créé(e). Flèche « dernier enregistrement » ou Rechercher pour le rouvrir.");
                         }
                         return;
                     }
@@ -760,17 +797,17 @@ namespace MaintenanceAddon.Core
             {
                 Matrix m = Mat(e.ItemUID);
                 m.FlushToDataSource();
-                if (target != null)
-                    F.DataSources.DBDataSources.Item(target.Table).SetValue(target.Alias, e.Row - 1,
-                        Convert.ToString(selected.GetValue(target.ReturnColumn, 0), CultureInfo.InvariantCulture));
+                string chosen = target == null ? null : ChosenValue(selected, target.ReturnColumn);
+                if (chosen != null)
+                    F.DataSources.DBDataSources.Item(target.Table).SetValue(target.Alias, e.Row - 1, chosen);
                 OnChosen(e.ItemUID, e.ColUID, e.Row, selected);
                 m.LoadFromDataSource();
             }
             else
             {
-                if (target != null)
+                string value = target == null ? null : ChosenValue(selected, target.ReturnColumn);
+                if (value != null)
                 {
-                    string value = Convert.ToString(selected.GetValue(target.ReturnColumn, 0), CultureInfo.InvariantCulture);
                     if (string.IsNullOrEmpty(target.Table))
                         F.DataSources.UserDataSources.Item(target.Alias).ValueEx = value;
                     else
@@ -782,6 +819,23 @@ namespace MaintenanceAddon.Core
             if (target == null || !string.IsNullOrEmpty(target.Table))
                 SetModeUpdate();
             SafeRefresh();
+        }
+
+        /// <summary>
+        /// Valeur d'une colonne de la sélection ; null si la colonne n'existe pas
+        /// (selon le mode, SAP ne renvoie pas toujours les mêmes colonnes ; la valeur
+        /// liée au champ est de toute façon reportée par SAP).
+        /// </summary>
+        private static string ChosenValue(DataTable selected, string column)
+        {
+            try
+            {
+                return Convert.ToString(selected.GetValue(column, 0), CultureInfo.InvariantCulture);
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                return null;
+            }
         }
 
         private void App_FormDataEvent(ref BusinessObjectInfo info, out bool bubbleEvent)
@@ -817,7 +871,8 @@ namespace MaintenanceAddon.Core
                         SafeRefresh();
                         break;
                     case BoEventTypes.et_FORM_DATA_ADD:
-                        _addedKey = ParseKey(info.ObjectKey);
+                        // ObjectKey est vide pour les écrans créés par code : clé retrouvée en base
+                        _addedKey = ParseKey(info.ObjectKey) ?? LastCreatedKey();
                         break;
                     case BoEventTypes.et_FORM_DATA_UPDATE:
                         SafeRefresh();
@@ -827,7 +882,7 @@ namespace MaintenanceAddon.Core
             catch (Exception ex)
             {
                 Program.Log(FormType + " FormData : " + ex);
-                App.MessageBox(ex.Message);
+                Program.Message(App, ex.Message);
             }
         }
 

@@ -14,6 +14,13 @@ namespace MaintenanceAddon.Forms
         private static readonly Dictionary<string, UdoForm> Forms = new Dictionary<string, UdoForm>();
 
         public static Application App;
+        public static FuncLocForm FuncLoc;
+        public static TaskListForm TaskList;
+        public static PlanForm Plan;
+        public static ContractForm Contract;
+        public static SchedulingForm Scheduling;
+        public static ListForm Lists;
+        public static SettingsForm Settings;
         public static EquipmentForm Equipment;
         public static NotificationForm Notification;
         public static OrderForm Order;

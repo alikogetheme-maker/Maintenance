@@ -191,7 +191,34 @@ circuit demande d'achat → commande → facture fournisseur → coût réel →
 (facture et règlement contre-passés en fin de test). Nb : par la DI API, une ligne
 de service copiée ne reprend pas son montant ; le test le renseigne (le client SAP le reprend).
 
-Dernier passage (03/10/2026) : **163 OK, 0 KO**.
+Dernier passage (04/10/2026) : **163 OK, 0 KO**.
+
+### Banc des écrans (client SAP ouvert)
+
+`tests/MntUiTest` pilote le client SAP B1 déjà ouvert sur `TST_TST` (chaîne de
+connexion de développement, comme F5) : ouvre tous les menus, puis crée à l'écran
+poste technique → équipement (point de mesure) → avis → ordre, ajoute des opérations,
+lance, confirme du temps, TECO, clôture ; vérifie les refus d'enregistrement (aucun
+document vide), la gamme, les paramètres et chaque rapport. Les boîtes de message
+passent par `Program.Message` (réponse automatique « Oui ») ; les erreurs de la barre
+d'état et du journal font échouer l'étape. Il refuse de démarrer si le banc d'écrans
+de la Paie tourne (même client).
+
+```
+"C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\amd64\MSBuild.exe" tests\MntUiTest\MntUiTest.csproj -restore
+tests\MntUiTest\bin\MntUiTest.exe
+```
+
+Données laissées (suffixe horaire) : postes UIF*, équipements UIE*, avis, ordres
+clôturés ou annulés ; la gamme UIG* est supprimée. Dernier passage (04/10/2026) : **109 OK, 0 KO**.
+
+Pièges UI API corrigés grâce à ce banc (socle `Core` identique à l'add-on Paie) :
+un seul abonnement aux événements (`Core/EventHub.cs`, sinon un refus de `Validate()`
+est ignoré) ; pas de réouverture après création (standard SAP, valeurs par défaut
+remises au premier événement suivant) ; combo lié à des valeurs valides SAP non vidé ;
+enregistrement vide gardé par SAP dans les lignes en création (retiré avant l'ajout
+d'une ligne) ; case à cocher de matrice : Y/N posés avant la liaison ; table de grille
+non recréée ; champ numérique utilisateur non vidable (`Invalid field value`).
 
 ## 8. Limites connues
 

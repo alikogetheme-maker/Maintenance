@@ -41,7 +41,9 @@ namespace MaintenanceAddon.Forms
             AddUds("udLast", BoDataType.dt_SHORT_TEXT, 200);
             AddUds("udDate", BoDataType.dt_DATE);
             AddUds("udTime", BoDataType.dt_SHORT_TEXT, 5);
-            AddUds("udVal", BoDataType.dt_MEASURE);
+            // Texte et non dt_MEASURE : un champ numérique ne peut pas être vidé (« Invalid field value »)
+            // et vide doit rester distinct d'une mesure à 0
+            AddUds("udVal", BoDataType.dt_SHORT_TEXT, 30);
             AddUds("udRem", BoDataType.dt_SHORT_TEXT, 200);
 
             U.Cfl("cflEq", Obj.Equip);
@@ -173,6 +175,11 @@ namespace MaintenanceAddon.Forms
             if (string.IsNullOrWhiteSpace(valueText))
             {
                 Msg("Saisissez la valeur relevée.", BoStatusBarMessageType.smt_Warning);
+                return;
+            }
+            if (!System.Text.RegularExpressions.Regex.IsMatch(valueText.Trim(), @"^-?[0-9][0-9\s.,]*$"))
+            {
+                Msg("La valeur relevée doit être un nombre.", BoStatusBarMessageType.smt_Warning);
                 return;
             }
             int.TryParse(Uds("udTime").Replace(":", "").Trim(), out int hhmm);

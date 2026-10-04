@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using SAPbouiCOM;
 using MaintenanceAddon.Core;
 using MaintenanceAddon.Forms;
@@ -72,31 +72,50 @@ namespace MaintenanceAddon
             Log("Tables, champs et objets vérifiés" + (created ? " (créations effectuées)" : ""));
 
             SboApplication.CreateMenus(_app);
-
-            Navigator.App = _app;
-            Navigator.Register(new FuncLocForm(_app));
-            Navigator.Register(Navigator.Equipment = new EquipmentForm(_app));
-            Navigator.Register(new TaskListForm(_app));
-            Navigator.Register(new PlanForm(_app));
-            Navigator.Register(new ContractForm(_app));
-            Navigator.Shipment = new ShipmentForm(_app);
-            Navigator.Register(Navigator.Notification = new NotificationForm(_app));
-            Navigator.Register(Navigator.Order = new OrderForm(_app));
-            Navigator.Confirmation = new ConfirmationForm(_app);
-            Navigator.Goods = new GoodsMovementForm(_app);
-            Navigator.Measurement = new MeasurementForm(_app);
-            _scheduling = new SchedulingForm(_app);
-            _lists = new ListForm(_app);
-            _settings = new SettingsForm(_app);
-
-            _app.MenuEvent += App_MenuEvent;
+            InitForms(_app);
             _app.AppEvent += App_AppEvent;
 
             if (created)
-                _app.MessageBox("L'add-on Maintenance a créé ses tables et objets dans la société.\n\n" +
+                Program.Message(_app, "L'add-on Maintenance a créé ses tables et objets dans la société.\n\n" +
                                 "Les autres utilisateurs connectés doivent se reconnecter.\n" +
                                 "Complétez ensuite Maintenance → Paramètres (comptes de charges).");
             _app.StatusBar.SetText("Add-on Maintenance démarré.", BoMessageTime.bmt_Short, BoStatusBarMessageType.smt_Success);
+        }
+
+        /// <summary>Crée les écrans et branche les menus (aussi utilisé par le banc de test des écrans).</summary>
+        internal static void InitForms(Application app)
+        {
+            _app = app;
+            Navigator.App = app;
+            Navigator.Register(Navigator.FuncLoc = new FuncLocForm(app));
+            Navigator.Register(Navigator.Equipment = new EquipmentForm(app));
+            Navigator.Register(Navigator.TaskList = new TaskListForm(app));
+            Navigator.Register(Navigator.Plan = new PlanForm(app));
+            Navigator.Register(Navigator.Contract = new ContractForm(app));
+            Navigator.Shipment = new ShipmentForm(app);
+            Navigator.Register(Navigator.Notification = new NotificationForm(app));
+            Navigator.Register(Navigator.Order = new OrderForm(app));
+            Navigator.Confirmation = new ConfirmationForm(app);
+            Navigator.Goods = new GoodsMovementForm(app);
+            Navigator.Measurement = new MeasurementForm(app);
+            Navigator.Scheduling = _scheduling = new SchedulingForm(app);
+            Navigator.Lists = _lists = new ListForm(app);
+            Navigator.Settings = _settings = new SettingsForm(app);
+            EventHub.RegisterMenu(app, App_MenuEvent);
+        }
+
+        /// <summary>
+        /// Banc de test des écrans : intercepte les boîtes de message (réponse
+        /// automatique 1 = Oui / OK, 2 = Non) au lieu de bloquer l'automate.
+        /// </summary>
+        internal static Func<string, int> MessageHook;
+
+        /// <summary>Boîte de message SAP (OK, ou Oui / Non) ; renvoie 1 pour OK / Oui.</summary>
+        internal static int Message(Application app, string text, bool yesNo = false)
+        {
+            if (MessageHook != null)
+                return MessageHook(text);
+            return yesNo ? app.MessageBox(text, 2, "Oui", "Non") : app.MessageBox(text);
         }
 
         internal static void Log(string message)
@@ -144,7 +163,7 @@ namespace MaintenanceAddon
             catch (Exception ex)
             {
                 Log("Menu " + pVal.MenuUID + " : " + ex);
-                _app.MessageBox(ex.Message);
+                Program.Message(_app, ex.Message);
             }
         }
 

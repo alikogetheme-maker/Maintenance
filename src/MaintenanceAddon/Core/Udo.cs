@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -62,6 +62,18 @@ namespace MaintenanceAddon.Core
         public void Update()
         {
             _service.Update(Data);
+        }
+
+        /// <summary>Supprime un document (DocEntry) ou une donnée de base (Code) ; l'objet doit autoriser la suppression.</summary>
+        public static void Delete(string objectCode, object key)
+        {
+            GeneralService gs = Service(objectCode);
+            GeneralDataParams p = (GeneralDataParams)gs.GetDataInterface(GeneralServiceDataInterfaces.gsGeneralDataParams);
+            if (key is int i)
+                p.SetProperty("DocEntry", i);
+            else
+                p.SetProperty("Code", Convert.ToString(key, CultureInfo.InvariantCulture));
+            gs.Delete(p);
         }
 
         public void Set(string field, object value)

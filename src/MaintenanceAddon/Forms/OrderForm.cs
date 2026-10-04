@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using SAPbouiCOM;
@@ -423,6 +423,11 @@ namespace MaintenanceAddon.Forms
             mOps.FlushToDataSource();
             mComps.FlushToDataSource();
             DBDataSource dOps = Lines(Db.OrderOps), dComps = Lines(Db.OrderComps);
+            // Enregistrement vide laissé par SAP en création (non affiché)
+            if (mOps.RowCount == 0)
+                while (dOps.Size > 0) dOps.RemoveRecord(0);
+            if (mComps.RowCount == 0)
+                while (dComps.Size > 0) dComps.RemoveRecord(0);
             if ((dOps.Size > 0 || dComps.Size > 0) &&
                 !Confirm("Ajouter les " + ops.Count + " opération(s) et " + comps.Count + " composant(s) de la gamme " + taskList + " à l'ordre ?"))
                 return;
@@ -544,7 +549,7 @@ namespace MaintenanceAddon.Forms
                     {
                         string result = OrderService.CreatePurchaseRequests(entry);
                         Reload();
-                        App.MessageBox(result);
+                        Program.Message(App, result);
                         break;
                     }
 
