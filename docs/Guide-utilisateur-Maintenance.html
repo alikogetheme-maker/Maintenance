@@ -82,6 +82,7 @@ p, li { max-width: 70ch; }
 a { color: var(--accent); }
 code, .mono { font-family: var(--f-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
 .path { font-weight: 600; }
+kbd { font-family: var(--f-body); font-size: .85em; font-weight: 600; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 6px; background: var(--surface); }
 .st { font-family: var(--f-mono); font-size: .82em; font-weight: 500; padding: 1px 6px; border-radius: 3px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
 
 ol.steps { padding-left: 0; list-style: none; counter-reset: s; display: grid; gap: 10px; }
@@ -182,6 +183,46 @@ figure.shot figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; 
 .objects h4 { margin: 0 0 6px; font-family: var(--f-display); font-weight: 700; font-size: 16px; }
 .objects ul { margin: 0; padding-left: 18px; font-size: 15px; color: var(--muted); }
 
+/* Parties du guide */
+.part { margin: 64px 0 0; padding-top: 18px; border-top: 3px solid var(--accent); }
+.part p.k { margin: 0; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.part h2 { margin-top: 4px; }
+nav.toc p.grp { margin: 16px 0 4px; color: var(--accent); font-weight: 700; }
+
+/* Liens vers le glossaire */
+a.gl { color: inherit; text-decoration: underline dotted var(--accent); text-underline-offset: 3px; }
+a.gl:hover, a.gl:focus-visible { color: var(--accent); }
+
+/* Cartes « par rôle » */
+.roles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 18px 0; }
+@media (max-width: 640px) { .roles { grid-template-columns: minmax(0,1fr); } }
+.roles a { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; text-decoration: none; color: var(--fg); }
+.roles a:hover, .roles a:focus-visible { border-color: var(--accent); outline: none; }
+.roles b { display: block; font-family: var(--f-display); font-size: 17px; color: var(--accent); }
+.roles span { font-size: 15px; color: var(--muted); }
+
+/* Comparaisons du quotidien */
+.analogy { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 18px 0; }
+@media (max-width: 640px) { .analogy { grid-template-columns: minmax(0,1fr); } }
+.analogy div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+.analogy b { display: block; font-family: var(--f-display); font-size: 16px; margin-bottom: 2px; }
+.analogy p { margin: 0; font-size: 15.5px; }
+.analogy em { color: var(--muted); font-style: normal; display: block; margin-top: 4px; font-size: 14.5px; }
+
+/* Tutoriel : une étape = action + résultat attendu */
+.tuto { display: grid; gap: 14px; margin: 18px 0; counter-reset: t; }
+.tuto > section { counter-increment: t; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px 14px 58px; position: relative; }
+.tuto > section::before { content: counter(t); position: absolute; left: 14px; top: 14px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--surface); font-family: var(--f-display); font-weight: 700; display: grid; place-items: center; }
+.tuto h4 { margin: 2px 0 6px; font-family: var(--f-display); font-size: 17px; }
+.tuto p { margin: 4px 0; }
+.tuto .res { margin-top: 8px; padding: 6px 10px; border-radius: 4px; background: var(--accent-soft); font-size: 15px; }
+.tuto .res b { color: var(--accent); }
+
+/* Erreurs du débutant */
+.oops { display: grid; gap: 8px; margin: 16px 0; padding: 0; list-style: none; }
+.oops li { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 4px; padding: 10px 14px; max-width: none; }
+.oops b { display: block; }
+
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 html { scroll-behavior: smooth; }
 </style>
@@ -189,8 +230,24 @@ html { scroll-behavior: smooth; }
 <div class="layout">
 <nav class="toc" aria-label="Sommaire">
   <p>Sommaire</p>
+  <p class="grp">Débuter</p>
   <ol>
-    <li><a href="#principe">1. Le principe</a></li>
+    <li><a href="#bases">La maintenance en 5 minutes</a></li>
+    <li><a href="#glossaire">Le vocabulaire</a></li>
+    <li><a href="#tuto">Votre première panne</a></li>
+    <li><a href="#decider">Bien décider</a></li>
+    <li><a href="#pieges">Erreurs fréquentes</a></li>
+  </ol>
+  <p class="grp">Par rôle</p>
+  <ol>
+    <li><a href="#r-tech">Technicien</a></li>
+    <li><a href="#r-resp">Responsable maintenance</a></li>
+    <li><a href="#r-achat">Acheteur</a></li>
+    <li><a href="#r-admin">Administrateur, comptable</a></li>
+  </ol>
+  <p class="grp">Référence</p>
+  <ol>
+    <li><a href="#principe">1. Objets et statuts</a></li>
     <li><a href="#installation">2. Mise en place</a></li>
     <li><a href="#base">3. Données de base</a></li>
     <li><a href="#avis">4. Déclarer une panne</a></li>
@@ -213,15 +270,245 @@ html { scroll-behavior: smooth; }
 <header class="top">
   <p class="eyebrow">Add-on SAP Business One · Guide utilisateur</p>
   <h1>Gestion de la maintenance</h1>
-  <p class="lead">Ce guide explique comment décrire votre parc (sites, équipements, gammes), déclarer une panne, piloter les interventions internes ou sous-traitées, suivre garanties et contrats, planifier l'entretien préventif et analyser les coûts et la disponibilité. Il s'adresse aux techniciens et responsables maintenance, aux acheteurs et, pour la partie « Mise en place », à l'administrateur SAP et à la comptabilité.</p>
+  <p class="lead">Ce guide accompagne aussi bien la personne qui découvre la maintenance que le responsable expérimenté. Il explique comment déclarer une panne, organiser une réparation (par vos équipes ou par un prestataire), entretenir le matériel avant qu'il ne casse, et suivre ce que cela coûte.</p>
+  <h3 style="margin-top:20px">Comment lire ce guide</h3>
+  <ul>
+    <li><strong>Vous débutez en maintenance ?</strong> Lisez la partie <a href="#bases">Débuter</a> dans l'ordre : les notions de base, le vocabulaire, puis <a href="#tuto">votre première panne pas à pas</a>. Comptez une demi-heure.</li>
+    <li><strong>Vous savez ce que vous cherchez ?</strong> Allez directement à votre <a href="#r-tech">parcours par rôle</a>, puis à la partie Référence.</li>
+    <li>Un mot souligné en pointillés renvoie à son explication dans le <a href="#glossaire">vocabulaire</a>.</li>
+  </ul>
   <div class="note warn">
     <strong>À propos des illustrations</strong>
-    <p>Les écrans de ce guide reproduisent les fenêtres de l'add-on (mêmes champs, libellés, boutons et disposition). Les équipements, prestataires, montants et numéros sont des exemples ; les montants suivent le format de la société (sans décimale, virgule pour les milliers : 1,200,000). L'apparence exacte (couleurs, polices) dépend de votre version et de votre thème SAP Business One.</p>
+    <p>Les écrans de ce guide reproduisent les fenêtres de l'add-on (mêmes champs, libellés, boutons et disposition). Les équipements, personnes, prestataires, montants et numéros sont des exemples ; les montants suivent le format de la société (sans décimale, virgule pour les milliers : 1,200,000). L'apparence exacte dépend de votre version et de votre thème SAP Business One.</p>
   </div>
 </header>
 
 <!-- ============================================================ -->
-<h2 id="principe">1. Le principe</h2>
+<div class="part"><p class="k">Partie 1 · Débuter</p>
+<h2 id="bases">La maintenance en 5 minutes</h2></div>
+<p>La <strong>maintenance</strong>, c'est tout ce que l'on fait pour que le matériel de l'entreprise fonctionne : climatiseurs, groupes électrogènes, véhicules, chariots élévateurs, machines, bâtiments. On la compare souvent à l'entretien d'une voiture.</p>
+<div class="analogy">
+  <div><b>Réparer après la panne</b><p>C'est la maintenance <strong>corrective</strong> : le climatiseur ne refroidit plus, on le répare.</p><em>Comme changer une roue crevée.</em></div>
+  <div><b>Entretenir avant la panne</b><p>C'est la maintenance <strong>préventive</strong> : on nettoie les filtres tous les 3 mois pour éviter la panne.</p><em>Comme la vidange tous les 10 000 km.</em></div>
+  <div><b>Garder la trace de tout</b><p>Chaque intervention est enregistrée sur l'équipement : quoi, quand, par qui, combien.</p><em>Comme le carnet d'entretien de la voiture.</em></div>
+  <div><b>Savoir à qui s'adresser</b><p>Certaines réparations sont faites par vos techniciens, d'autres par un prestataire, ou gratuitement par le vendeur tant que la garantie court.</p><em>Comme le garagiste, ou le concessionnaire sous garantie.</em></div>
+</div>
+<p><strong>Pourquoi tout enregistrer ?</strong> Parce que, sans trace, on ne sait pas quels appareils tombent souvent en panne, combien ils coûtent, ni quand il vaut mieux les remplacer. On risque aussi de payer une réparation couverte par la garantie, ou d'oublier un entretien obligatoire.</p>
+<p>Dans l'add-on, une intervention suit toujours le même chemin, en deux documents :</p>
+<div class="cycle" role="list">
+  <div role="listitem"><i>1</i><b>On signale</b><span>Un <a class="gl" href="#g-avis">avis</a> décrit le problème : quel appareil, quel symptôme, quelle urgence.</span></div>
+  <div role="listitem"><i>2</i><b>On organise</b><span>Un <a class="gl" href="#g-ordre">ordre</a> décrit le travail : qui, quand, avec quelles pièces.</span></div>
+  <div role="listitem"><i>3</i><b>On réalise</b><span>Pièces sorties du magasin, heures passées, prestataire appelé.</span></div>
+  <div role="listitem"><i>4</i><b>On termine</b><span>La <a class="gl" href="#g-teco">clôture technique</a> dit « c'est réparé ».</span></div>
+  <div role="listitem"><i>5</i><b>On solde</b><span>Une fois tout facturé, la <a class="gl" href="#g-clsd">clôture</a> fige les coûts.</span></div>
+</div>
+<p>Pour l'entretien préventif, c'est l'add-on qui crée les ordres tout seul, à partir d'un <a class="gl" href="#g-plan">plan de maintenance</a> (« nettoyer ce climatiseur tous les 3 mois »).</p>
+
+<!-- ============================================================ -->
+<h2 id="glossaire">Le vocabulaire</h2>
+<p>Les mots de la maintenance, expliqués simplement. Entre parenthèses, le code qui s'affiche parfois dans les écrans.</p>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Mot</th><th>Ce que ça veut dire</th><th>Exemple</th></tr>
+  <tr id="g-equip"><td><strong>Équipement</strong></td><td>Un appareil précis, avec son numéro, que l'on entretient.</td><td>Le climatiseur CLIM-0012 du bureau 3</td></tr>
+  <tr id="g-poste"><td><strong>Poste technique</strong></td><td>Un lieu où sont installés des équipements : site, agence, bâtiment, étage. Les postes techniques s'emboîtent.</td><td>Agence Yopougon → bureaux</td></tr>
+  <tr id="g-avis"><td><strong>Avis</strong></td><td>Le signalement d'un problème ou d'un besoin. Tout le monde peut en créer.</td><td>« Le climatiseur du bureau 3 ne refroidit plus »</td></tr>
+  <tr id="g-ordre"><td><strong>Ordre</strong> (ordre de maintenance)</td><td>Le dossier du travail à faire : les tâches, les pièces, le prestataire, les coûts.</td><td>Ordre 245 : remplacer le filtre et recharger le gaz</td></tr>
+  <tr id="g-op"><td><strong>Opération</strong></td><td>Une tâche de l'ordre, numérotée 0010, 0020… Elle est interne (vos techniciens) ou externe (un prestataire).</td><td>0010 Nettoyage des filtres</td></tr>
+  <tr id="g-comp"><td><strong>Composant</strong></td><td>Une pièce ou une fourniture prévue dans l'ordre, prise en stock ou achetée.</td><td>2 filtres, 1,5 kg de gaz R32</td></tr>
+  <tr id="g-pt"><td><strong>Poste de travail</strong></td><td>L'équipe qui fait le travail, avec son coût horaire.</td><td>MECA (atelier mécanique), ELEC, EXT (prestataires)</td></tr>
+  <tr id="g-prio"><td><strong>Priorité</strong></td><td>L'urgence, de 1 (très élevée) à 4 (faible). Elle fixe le délai pour intervenir.</td><td>Priorité 2 : sous 24 h</td></tr>
+  <tr id="g-correctif"><td><strong>Correctif</strong> (PM01)</td><td>Réparation après une panne.</td><td>Remplacer un compresseur cassé</td></tr>
+  <tr id="g-preventif"><td><strong>Préventif</strong> (PM02)</td><td>Entretien planifié pour éviter la panne.</td><td>Nettoyage trimestriel</td></tr>
+  <tr id="g-amelio"><td><strong>Amélioration</strong> (PM03)</td><td>Travaux qui rendent l'appareil meilleur ou prolongent sa vie ; ils peuvent être immobilisés.</td><td>Remplacer l'unité extérieure par un modèle plus puissant</td></tr>
+  <tr id="g-inspect"><td><strong>Inspection</strong> (PM04)</td><td>Contrôle, souvent réglementaire.</td><td>Vérification annuelle des extincteurs</td></tr>
+  <tr id="g-gamme"><td><strong>Gamme</strong></td><td>Une « recette » d'intervention réutilisable : la liste des opérations et des pièces.</td><td>« Entretien clim 3 mois » : nettoyage, contrôle gaz, 2 filtres</td></tr>
+  <tr id="g-plan"><td><strong>Plan de maintenance</strong></td><td>La règle qui déclenche le préventif : tous les N mois, ou toutes les N heures de fonctionnement.</td><td>Tous les 3 mois, avec la gamme ci-dessus</td></tr>
+  <tr id="g-echeance"><td><strong>Échéance</strong></td><td>La date (ou la valeur de compteur) à laquelle le prochain entretien est dû.</td><td>Prochaine échéance : 10/10/2026</td></tr>
+  <tr id="g-compteur"><td><strong>Point de mesure, compteur, relevé</strong></td><td>Une valeur suivie sur l'appareil (heures de marche, température). Le relevé est la valeur notée à une date.</td><td>Groupe électrogène : 1 462 heures le 03/10</td></tr>
+  <tr id="g-catalogue"><td><strong>Codes catalogue</strong></td><td>Des listes de choix pour décrire la panne : partie touchée, dommage, cause, action réalisée. Elles permettent les statistiques.</td><td>Dommage « Fuite », cause « Usure normale »</td></tr>
+  <tr id="g-arret"><td><strong>Arrêt, durée d'arrêt</strong></td><td>Temps pendant lequel l'appareil ne pouvait plus servir, du début à la fin de la panne.</td><td>Arrêt de 26 h</td></tr>
+  <tr id="g-confirm"><td><strong>Confirmation</strong></td><td>La déclaration des heures réellement passées sur une opération.</td><td>1,5 h par Yao Konan</td></tr>
+  <tr id="g-sortie"><td><strong>Sortie de stock</strong></td><td>Le document SAP qui retire les pièces du magasin et les impute à l'ordre.</td><td>Sortie n° 5728</td></tr>
+  <tr id="g-da"><td><strong>Demande d'achat</strong> (DA)</td><td>La demande au service achats d'acheter une pièce ou une prestation.</td><td>DA de prestation pour FROIDTECH</td></tr>
+  <tr id="g-presta"><td><strong>Prestataire</strong></td><td>Une entreprise extérieure qui intervient (déclarée comme fournisseur dans SAP).</td><td>CLIMA SERVICES</td></tr>
+  <tr id="g-garantie"><td><strong>Garantie, garant</strong></td><td>Période pendant laquelle le vendeur répare gratuitement ; le garant est l'entreprise qui doit intervenir.</td><td>Sous garantie jusqu'au 14/03/2027</td></tr>
+  <tr id="g-contrat"><td><strong>Contrat de maintenance</strong></td><td>Accord payant avec un prestataire qui entretient et/ou dépanne certains appareils, souvent avec un délai d'intervention garanti.</td><td>1,200,000 par an, intervention sous 4 h</td></tr>
+  <tr id="g-envoi"><td><strong>Envoi chez le prestataire</strong></td><td>L'appareil quitte le site pour être réparé en atelier.</td><td>Climatiseur parti chez FROIDTECH le 03/10</td></tr>
+  <tr id="g-teco"><td><strong>Clôture technique</strong> (TECO)</td><td>« Le travail est fini. » L'avis se termine, le plan d'entretien avance. Des factures peuvent encore arriver.</td><td>Réparation terminée le 04/10</td></tr>
+  <tr id="g-clsd"><td><strong>Clôture</strong> (CLSD)</td><td>« Le dossier est soldé. » Plus rien ne peut être imputé ; les coûts sont définitifs.</td><td>Facture du prestataire reçue, ordre clôturé</td></tr>
+  <tr id="g-statuts"><td><strong>Statuts</strong></td><td>Avis : en attente (OSNO), en cours (NOPR), terminé (NOCO). Ordre : créé (CRTD), lancé (REL), clôture technique (TECO), clôturé (CLSD), annulé.</td><td>Ordre « Lancé (REL) »</td></tr>
+  <tr id="g-criticite"><td><strong>Criticité</strong></td><td>Importance de l'appareil pour l'activité : A critique, B importante, C secondaire.</td><td>Clim de la salle serveur : A</td></tr>
+  <tr id="g-ccout"><td><strong>Centre de coûts</strong></td><td>Le service ou le lieu auquel la comptabilité attribue la dépense.</td><td>0101CH01</td></tr>
+  <tr id="g-mttr"><td><strong>MTTR</strong></td><td>Temps moyen de réparation : en moyenne, combien d'heures dure une panne.</td><td>MTTR 6 h</td></tr>
+  <tr id="g-mtbf"><td><strong>MTBF</strong></td><td>Temps moyen entre deux pannes : plus il est grand, plus l'appareil est fiable.</td><td>MTBF 1 400 h</td></tr>
+  <tr id="g-dispo"><td><strong>Disponibilité</strong></td><td>Part du temps où l'appareil était en état de marche.</td><td>99,5 %</td></tr>
+  <tr id="g-immo"><td><strong>Immobiliser</strong></td><td>Enregistrer une dépense comme une valeur durable (un actif) plutôt que comme une charge de l'année. Décidé avec la comptabilité.</td><td>Remplacement complet d'une unité</td></tr>
+  <tr id="g-backlog"><td><strong>Carnet en retard</strong> (backlog)</td><td>Les ordres pas encore terminés alors que leur date de fin prévue est passée.</td><td>3 ordres en retard</td></tr>
+</table></div>
+
+<h3 id="ecrans">Se repérer dans les écrans SAP</h3>
+<ul>
+  <li><strong>Le bouton en bas à gauche change de nom</strong> selon ce que vous faites : <em>Créer</em> (nouvelle fiche), <em>Rechercher</em>, <em>Mettre à jour</em> (vous avez modifié une fiche existante), <em>OK</em> (rien à enregistrer).</li>
+  <li><strong>Retrouver une fiche</strong> : bouton <em>Rechercher</em> de la barre d'outils (les jumelles), tapez le numéro ou le code, puis cliquez sur <em>Rechercher</em>. Les flèches de la barre d'outils passent à la fiche précédente, suivante, première ou dernière.</li>
+  <li><strong>Choisir dans une liste</strong> : dans un champ comme Équipement ou Prestataire, appuyez sur <kbd>Tab</kbd> ou cliquez sur la petite icône du champ ; une fenêtre de choix s'ouvre.</li>
+  <li><strong>La flèche orange</strong> devant un champ ouvre la fiche correspondante (l'équipement, l'avis, l'ordre…).</li>
+  <li><strong>Les messages</strong> s'affichent dans la barre d'état, en bas de la fenêtre SAP : vert = réussi, orange = attention, rouge = refusé (la raison est écrite).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="tuto">Votre première panne, pas à pas</h2>
+<p><strong>La situation</strong> : vous êtes Awa Koné, technicienne à l'agence de Yopougon. Ce matin à 8 h 15, le climatiseur CLIM-0012 des bureaux s'est mis à faire du bruit, puis s'est arrêté de refroidir. Voici les 12 étapes, de l'alerte à la clôture. Le résultat attendu de chaque étape est indiqué pour vérifier que tout s'est bien passé.</p>
+<div class="tuto">
+  <section><h4>Ouvrir la fiche de l'appareil</h4>
+    <p><span class="path">Maintenance → Données de base → Équipements</span>, puis Rechercher : tapez <code>CLIM-0012</code> dans Code.</p>
+    <p class="res"><b>Résultat attendu</b> : la fiche du climatiseur s'affiche. Lisez le bandeau jaune : il dit si l'appareil est sous garantie ou sous contrat. Ici : « SOUS GARANTIE jusqu'au 14/03/2027 ». Ne démontez donc rien vous-même.</p></section>
+  <section><h4>Créer l'avis depuis la fiche</h4>
+    <p>Cliquez sur <strong>Créer un avis</strong> en bas de la fiche.</p>
+    <p class="res"><b>Résultat attendu</b> : l'écran Avis de maintenance s'ouvre avec l'équipement, le lieu et l'équipe déjà remplis.</p></section>
+  <section><h4>Décrire la panne</h4>
+    <p>Type <strong>M2 - Avis de panne</strong>, priorité <strong>2 - Élevée</strong> (le bureau est inutilisable, voir <a href="#decider">Bien décider</a>). Description courte : <em>« Ne refroidit plus, bruit anormal au démarrage »</em>. Onglet <strong>Panne / arrêt</strong> : cochez <em>Arrêt de l'équipement</em>, début le 03/10/2026 à 08:15. Onglet <strong>Codes catalogue</strong> : dommage « Bruit / vibration anormale ».</p>
+    <p class="res"><b>Résultat attendu</b> : la fin souhaitée s'est calculée toute seule à partir de la priorité.</p></section>
+  <section><h4>Enregistrer</h4>
+    <p>Cliquez sur <strong>Créer</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : l'écran se vide pour un nouvel avis (c'est normal dans SAP) et la barre d'état affiche :</p>
+    <p><span class="sb ok">Avis de maintenance n° 112 créé(e). Flèche « dernier enregistrement » ou Rechercher pour le rouvrir.</span></p></section>
+  <section><h4>Rouvrir votre avis</h4>
+    <p>Cliquez sur la flèche <strong>Dernier enregistrement</strong> de la barre d'outils (ou Rechercher, n° 112).</p>
+    <p class="res"><b>Résultat attendu</b> : l'avis 112 s'affiche au statut <em>En attente (OSNO)</em>. Si vous n'êtes pas chargée d'organiser la réparation, vous pouvez vous arrêter là : votre responsable le verra dans la liste des avis.</p></section>
+  <section><h4>Créer l'ordre</h4>
+    <p>Cliquez sur <strong>Créer l'ordre</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : l'ordre 245 s'ouvre, type <em>PM01 - Correctif</em>, statut <em>Créé (CRTD)</em>, avec une opération 0010. L'appareil étant sous garantie, l'opération est déjà confiée au garant (FROIDTECH), à coût 0. L'avis passe <em>En cours (NOPR)</em>.</p></section>
+  <section><h4>Préparer le travail</h4>
+    <p>Onglet <strong>Opérations</strong> : ajoutez les tâches faites par vos équipes (par exemple 0020 « Contrôle de l'alimentation électrique », poste ELEC, 1,5 h). Onglet <strong>Composants</strong> : ajoutez les pièces nécessaires. Puis <strong>Mettre à jour</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : l'onglet <em>Coûts</em> affiche le coût prévu.</p></section>
+  <section><h4>Lancer l'ordre</h4>
+    <p>Cliquez sur <strong>Lancer</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : statut <em>Lancé (REL)</em>. Les sorties de pièces et la saisie des heures sont maintenant possibles. Prévenez le garant : sous garantie, aucune commande n'est nécessaire.</p></section>
+  <section><h4>Prendre les pièces au magasin</h4>
+    <p>Onglet <strong>Composants</strong>, <strong>Sortie de stock…</strong>, vérifiez les quantités, <strong>Sortir du stock</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : un message donne le n° de la sortie de stock ; la colonne « Qté sortie » est à jour. Ne prenez jamais une pièce sans faire cette sortie.</p></section>
+  <section><h4>Déclarer vos heures</h4>
+    <p>Après le travail : cliquez sur l'opération 0020, puis <strong>Confirmer du temps…</strong>. Heures : 1,5. Cochez <em>Confirmation finale</em> si la tâche est finie, puis <strong>Valider</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : la colonne « Réalisé (h) » vaut 1,5 et « Terminée » est cochée.</p></section>
+  <section><h4>Noter la fin de la panne</h4>
+    <p>Ouvrez l'avis (flèche devant le champ <em>Avis</em> de l'ordre), onglet <strong>Panne / arrêt</strong> : fin de panne le 04/10/2026 à 10:30, puis <strong>Mettre à jour</strong>.</p>
+    <p class="res"><b>Résultat attendu</b> : la durée d'arrêt s'affiche (26,3 h). Elle servira aux indicateurs de fiabilité.</p></section>
+  <section><h4>Déclarer le travail terminé</h4>
+    <p>Dans l'ordre, cliquez sur <strong>Clôture technique</strong> et confirmez.</p>
+    <p class="res"><b>Résultat attendu</b> : ordre <em>Clôt. technique (TECO)</em>, avis <em>Terminé (NOCO)</em>. Le dossier sera clôturé définitivement par le responsable une fois les éventuelles factures reçues.</p></section>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="decider">Bien décider</h2>
+<h3>Faut-il créer un avis ?</h3>
+<p><strong>Oui, dès qu'un appareil pose problème</strong>, même si vous le réparez dans la minute. Un problème non enregistré n'existe pas pour les statistiques. Pour un petit travail déjà fait sur place, créez un avis <strong>M3 - Rapport d'activité</strong> : il garde la trace sans ouvrir d'ordre.</p>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Situation</th><th>Type d'avis</th></tr>
+  <tr><td>L'appareil ne marche plus ou marche mal</td><td><strong>M2 - Avis de panne</strong></td></tr>
+  <tr><td>Un besoin sans panne : déplacer un appareil, ajouter une prise, régler un thermostat</td><td><strong>M1 - Demande de maintenance</strong></td></tr>
+  <tr><td>Vous avez déjà fait une petite intervention et voulez la noter</td><td><strong>M3 - Rapport d'activité</strong></td></tr>
+</table></div>
+
+<h3>Quelle priorité choisir ?</h3>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Priorité</th><th>Quand</th><th>Exemples</th><th>Délai par défaut</th></tr>
+  <tr><td><strong>1 - Très élevée</strong></td><td>Danger pour les personnes, ou toute l'activité est arrêtée</td><td>Fuite de gaz, climatisation de la salle serveur en panne, groupe électrogène hors service pendant une coupure</td><td class="num">4 h</td></tr>
+  <tr><td><strong>2 - Élevée</strong></td><td>L'appareil est arrêté et gêne fortement le travail</td><td>Climatiseur d'un bureau occupé, chariot élévateur en panne</td><td class="num">24 h</td></tr>
+  <tr><td><strong>3 - Moyenne</strong></td><td>L'appareil fonctionne, mais mal</td><td>Climatiseur bruyant, porte qui ferme mal</td><td class="num">72 h</td></tr>
+  <tr><td><strong>4 - Faible</strong></td><td>Confort, aspect, rien d'urgent</td><td>Grille rayée, voyant défectueux</td><td class="num">1 semaine</td></tr>
+</table></div>
+<p>Les délais sont réglables dans les paramètres. Un contrat de maintenance avec délai d'intervention garanti l'emporte s'il est plus court.</p>
+
+<h3>Cocher « Arrêt de l'équipement » ?</h3>
+<p>Cochez-le si <strong>l'appareil ne peut plus remplir sa fonction</strong>, même s'il est allumé (un climatiseur qui souffle de l'air chaud est à l'arrêt). Renseignez le début de panne, puis la fin quand il remarche. Sans ces deux dates, les indicateurs de fiabilité seront faux.</p>
+
+<h3>Quel type d'ordre ?</h3>
+<div class="table-wrap"><table class="doc">
+  <tr><th>Le travail…</th><th>Type</th></tr>
+  <tr><td>répare une panne</td><td><strong>PM01 - Correctif</strong> (créé automatiquement depuis l'avis)</td></tr>
+  <tr><td>est un entretien régulier</td><td><strong>PM02 - Préventif</strong> (en principe créé par un plan)</td></tr>
+  <tr><td>rend l'appareil meilleur, plus puissant ou prolonge nettement sa vie</td><td><strong>PM03 - Amélioration</strong> (en parler à la comptabilité : il peut être immobilisé)</td></tr>
+  <tr><td>est un contrôle obligatoire ou une visite</td><td><strong>PM04 - Inspection</strong></td></tr>
+</table></div>
+
+<h3>Faire soi-même ou appeler un prestataire ?</h3>
+<ul>
+  <li><strong>Sous garantie</strong> (bandeau jaune) : appelez toujours le garant. Une intervention par vos soins peut faire perdre la garantie.</li>
+  <li><strong>Sous contrat</strong> : appelez le titulaire du contrat ; la main-d'oeuvre est souvent déjà payée.</li>
+  <li><strong>Sinon</strong> : vos équipes si elles en ont la compétence et les pièces, sinon le prestataire attitré de l'appareil (opération « Externe », puis demande d'achat).</li>
+</ul>
+
+<h3>Pièce en stock ou à acheter ?</h3>
+<p>Choisissez <strong>Stock</strong> si la pièce est au magasin (vous ferez une sortie de stock), <strong>Achat</strong> sinon (une demande d'achat sera créée pour le service achats).</p>
+
+<h3>Clôture technique ou clôture ?</h3>
+<p>Faites la <strong>clôture technique</strong> dès que le travail est fini. La <strong>clôture</strong> est faite plus tard par le responsable, quand toutes les factures sont arrivées : après elle, plus aucune dépense ne peut être rattachée à l'ordre.</p>
+
+<!-- ============================================================ -->
+<h2 id="pieges">Erreurs fréquentes du débutant</h2>
+<ul class="oops">
+  <li><b>Réparer sans créer d'avis.</b>L'appareil n'a alors aucun historique et semble ne jamais tomber en panne. Créez au minimum un avis M3 après coup.</li>
+  <li><b>Écrire « en panne » comme description.</b>Indiquez le symptôme, ce que vous avez constaté et depuis quand : « ne refroidit plus, bruit au démarrage depuis 8 h 15 ».</li>
+  <li><b>Créer un deuxième avis pour la même panne.</b>Regardez d'abord l'onglet <em>Historique</em> de l'équipement : un avis est peut-être déjà ouvert.</li>
+  <li><b>Chercher l'avis qu'on vient de créer.</b>Après <em>Créer</em>, l'écran se vide : c'est normal. Utilisez la flèche « Dernier enregistrement ».</li>
+  <li><b>Oublier « Mettre à jour » avant de cliquer sur un bouton d'action.</b>Le message « Enregistrez d'abord vos modifications » s'affiche : cliquez sur Mettre à jour, puis recommencez.</li>
+  <li><b>Prendre une pièce au magasin sans sortie de stock.</b>Le stock devient faux et le coût de la réparation aussi.</li>
+  <li><b>Oublier les heures ou la confirmation finale.</b>Le coût réel reste à zéro, et un avertissement apparaît à la clôture technique.</li>
+  <li><b>Oublier la fin de panne.</b>La panne compte jusqu'à maintenant : les indicateurs de fiabilité seront faussés.</li>
+  <li><b>Démonter un appareil sous garantie.</b>Lisez toujours le bandeau jaune de la fiche avant d'intervenir.</li>
+  <li><b>Clôturer trop tôt.</b>Pour dire « c'est réparé », utilisez la clôture technique. La clôture définitive est refusée tant qu'une commande est ouverte.</li>
+</ul>
+
+<!-- ============================================================ -->
+<div class="part"><p class="k">Partie 2 · Par rôle</p>
+<h2 id="roles">Ce que chacun fait</h2></div>
+<div class="roles">
+  <a href="#r-tech"><b>Technicien</b><span>Déclarer, réparer, sortir les pièces, déclarer ses heures.</span></a>
+  <a href="#r-resp"><b>Responsable maintenance</b><span>Trier les avis, planifier, suivre les délais et les coûts.</span></a>
+  <a href="#r-achat"><b>Acheteur</b><span>Transformer les demandes en commandes, suivre contrats et factures.</span></a>
+  <a href="#r-admin"><b>Administrateur, comptable</b><span>Mise en place, paramètres, comptes, immobilisation.</span></a>
+</div>
+
+<h3 id="r-tech">Technicien</h3>
+<ol class="steps">
+  <li><div><strong>En début de journée</strong> : <span class="path">Rapports → Liste des ordres</span>, statut <em>Lancé (REL)</em> et votre poste de travail : ce sont vos travaux du jour.</div></li>
+  <li><div><strong>Une panne est signalée</strong> : créez l'avis (<a href="#tuto">tutoriel</a>, étapes 1 à 5 ; <a href="#avis">référence</a>).</div></li>
+  <li><div><strong>Pendant le travail</strong> : sortez les pièces (<a href="#pieces">section 6</a>), déclarez vos heures (<a href="#temps">section 8</a>).</div></li>
+  <li><div><strong>À la fin</strong> : fin de panne dans l'avis, puis clôture technique si vous en avez la charge (<a href="#cloture">section 9</a>).</div></li>
+  <li><div><strong>Si l'appareil part en atelier</strong> : enregistrez l'envoi, puis le retour (<a href="#prestataires">section 10.4</a>).</div></li>
+  <li><div><strong>Relevés</strong> : notez les compteurs demandés (heures des groupes, kilomètres) (<a href="#mesures">section 12</a>).</div></li>
+</ol>
+
+<h3 id="r-resp">Responsable maintenance</h3>
+<ol class="steps">
+  <li><div><strong>Chaque jour</strong> : <span class="path">Rapports → Liste des avis</span>, statut <em>En attente</em>. Pour chacun : créer l'ordre, ajuster la priorité, ou terminer l'avis s'il n'y a rien à faire.</div></li>
+  <li><div><strong>Chaque jour</strong> : <span class="path">Rapports → Carnet d'ordres en retard</span>, pour relancer ou replanifier.</div></li>
+  <li><div><strong>Chaque semaine</strong> : <span class="path">Maintenance préventive → Ordonnancement des plans</span>, puis « Appeler tous les plans dus » (<a href="#preventif">section 13</a>).</div></li>
+  <li><div><strong>Chaque semaine</strong> : clôturer les ordres en clôture technique dont les achats sont facturés (<a href="#cloture">section 9</a>).</div></li>
+  <li><div><strong>Chaque mois</strong> : indicateurs et coûts par équipement, garanties et contrats qui arrivent à échéance (<a href="#rapports">section 14</a>).</div></li>
+  <li><div><strong>Une fois</strong> : décrire le parc (sites, équipements, gammes, plans) (<a href="#base">section 3</a>).</div></li>
+</ol>
+
+<h3 id="r-achat">Acheteur</h3>
+<ol class="steps">
+  <li><div>Les demandes d'achat créées par les ordres portent le n° d'ordre sur chaque ligne (champ <em>Ordre de maintenance</em>).</div></li>
+  <li><div>Faites la commande puis la facture par <strong>Copier vers</strong> : le n° d'ordre suit, et le coût arrive sur l'ordre (<a href="#achats">section 7</a>).</div></li>
+  <li><div>Sur les factures d'un contrat de maintenance, renseignez le champ <em>Contrat de maintenance</em> (<a href="#prestataires">section 10.2</a>).</div></li>
+  <li><div>Suivez les contrats à renouveler ou à résilier (rapport <em>Contrats de maintenance</em>) et les appareils chez les prestataires.</div></li>
+</ol>
+
+<h3 id="r-admin">Administrateur, comptable</h3>
+<ol class="steps">
+  <li><div>Installer l'add-on et renseigner les paramètres (<a href="#installation">section 2</a>).</div></li>
+  <li><div>Renseigner les taux horaires des postes de travail et les catalogues.</div></li>
+  <li><div>Choisir les comptes (charges, main-d'oeuvre, immobilisations en cours) et l'axe analytique.</div></li>
+  <li><div>Suivre les ordres à immobiliser et leurs écritures de règlement (<a href="#immo">section 11</a>, <a href="#compta">section 15</a>).</div></li>
+</ol>
+
+<!-- ============================================================ -->
+<div class="part"><p class="k">Partie 3 · Référence</p>
+<h2 id="principe">1. Objets et statuts</h2></div>
+<p>Cette partie décrit chaque écran et chaque règle en détail. Les mots techniques sont expliqués dans le <a href="#glossaire">vocabulaire</a>.</p>
 <p>L'add-on reprend l'organisation du module Maintenance de SAP S/4HANA. Votre parc est décrit une fois pour toutes ; chaque intervention passe ensuite par un <strong>avis</strong> (on signale) puis un <strong>ordre</strong> (on planifie, réalise et chiffre).</p>
 
 <div class="objects">
