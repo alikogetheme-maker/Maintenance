@@ -168,6 +168,7 @@ namespace MaintenanceAddon.Forms
             AddFolder("fOps", "Opérations", x, ft, 110, 1);
             AddFolder("fComps", "Composants", x + 110, ft, 110, 2);
             AddFolder("fRem", "Remarques", x + 220, ft, 110, 3);
+            AddFolder("fSafe", "Sécurité", x + 330, ft, 110, 4);
             U.Frame("rFrame", x, ft + 19, FormWidth - 30, FormHeight - ft - 110);
             int mh = FormHeight - top - 145, by = FormHeight - 140;
 
@@ -189,7 +190,20 @@ namespace MaintenanceAddon.Forms
 
             U.Pane = 3;
             U.Memo("eRem", x + 10, top, FormWidth - 50, mh, "U_Remarks");
+            U.Pane = 4;
+            U.Label("lSafe", "Consignes de sécurité recopiées sur les ordres et imprimées sur le bon de travail (consignation, EPI, permis...).", x + 10, top, 700);
+            U.Memo("eSafe", x + 10, top + Ui.Step + 3, FormWidth - 50, mh - Ui.Step - 3, "U_Safety");
             U.Pane = 0;
+        }
+
+        protected override string CanOpen()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Read, "consulter les gammes");
+        }
+
+        protected override string CanEdit()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Full, "modifier les gammes");
         }
 
         protected override void SetDefaults()

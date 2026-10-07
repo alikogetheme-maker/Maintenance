@@ -28,8 +28,18 @@ namespace MaintenanceAddon.Forms
         protected override string[] ChildTables => new[] { Db.OrderOps, Db.OrderComps };
         protected override bool IsDocument => true;
         protected override string Title => "Ordre de maintenance";
-        protected override int FormWidth => 960;
+        protected override int FormWidth => 980;
         protected override int FormHeight => 700;
+
+        protected override string CanOpen()
+        {
+            return AuthService.Denied(Perm.Order, Access.Read, "consulter les ordres de maintenance");
+        }
+
+        protected override string CanEdit()
+        {
+            return AuthService.Denied(Perm.Order, Access.Full, "créer ou modifier un ordre de maintenance");
+        }
 
         protected override void Build()
         {
@@ -121,6 +131,7 @@ namespace MaintenanceAddon.Forms
             AddFolder("fConf", "Confirmations", x + 290, ft, 100, 4);
             AddFolder("fDocs", "Documents liés", x + 390, ft, 110, 5);
             AddFolder("fDescr", "Description", x + 500, ft, 100, 6);
+            AddFolder("fSafe", "Sécurité", x + 600, ft, 90, 7);
             int top = ft + 25;
             U.Frame("rFrame", x, ft + 19, FormWidth - 30, FormHeight - ft - 110);
             int mh = FormHeight - top - 125, by = FormHeight - 120;
@@ -147,6 +158,7 @@ namespace MaintenanceAddon.Forms
             U.Button("bCpDel", "Supprimer la ligne", x + 135, by, 120);
             U.Button("bIssue", "Sortie de stock...", x + 260, by, 130);
             U.Button("bReturn", "Retour en stock...", x + 395, by, 130);
+            U.Button("bParts", "Pièces de l'équipement...", x + 530, by, 160);
             RegisterMatrix("mComps", Db.OrderComps, "U_ItemCode", "bCpAdd", "bCpDel", (ds, row) => OpCompMatrices.NewComponent(ds, row, DefaultWarehouse()));
             RegisterCfl("mComps", "cItem", "@" + Db.OrderComps, "U_ItemCode", "ItemCode");
             RegisterCfl("mComps", "cWhs", "@" + Db.OrderComps, "U_Whs", "WhsCode");
@@ -182,6 +194,9 @@ namespace MaintenanceAddon.Forms
             U.Grid("gDocs", DtDocs, x + 10, top, FormWidth - 50, mh + 25);
             U.Pane = 6;
             U.Memo("eDescr", x + 10, top, FormWidth - 50, mh + 25, "U_Descr");
+            U.Pane = 7;
+            U.Label("lSafe", "Consignes de sécurité imprimées sur le bon de travail (consignation, EPI, permis...) : reprises de la gamme.", x + 10, top, 700);
+            U.Memo("eSafe", x + 10, top + Ui.Step + 3, FormWidth - 50, mh + 5, "U_Safety");
             U.Pane = 0;
 
             int bx = 150, bw = 112, bt = FormHeight - 62;
@@ -191,6 +206,7 @@ namespace MaintenanceAddon.Forms
             U.Button("bClose", "Clôturer", bx + 3 * (bw + 4), bt, bw);
             U.Button("bCancel", "Annuler l'ordre", bx + 4 * (bw + 4), bt, bw);
             U.Button("bPR", "Demandes d'achat", bx + 5 * (bw + 4), bt, bw);
+            U.Button("bPrint", "Bon de travail", bx + 6 * (bw + 4), bt, 100);
         }
 
         private void AddName(string uds, string id, int left, int top, int width)
@@ -340,6 +356,8 @@ namespace MaintenanceAddon.Forms
             Enable("bReturn", st == OrderStatus.Released);
             Enable("bRecalc", entry > 0 && st != OrderStatus.Cancelled && st != OrderStatus.Closed);
             Enable("bShip", (st == OrderStatus.Created || st == OrderStatus.Released) && H("U_Equip") != "");
+            Enable("bParts", editable && F.Mode != BoFormMode.fm_FIND_MODE && H("U_Equip") != "");
+            Enable("bPrint", entry > 0 && st != OrderStatus.Cancelled);
             Enable("cCap", editable);
             Enable("eCap", editable);
         }
@@ -468,7 +486,36 @@ namespace MaintenanceAddon.Forms
             mComps.LoadFromDataSource();
             if (H("U_OrdType") == "")
                 SetH("U_OrdType", Sql.ScalarStr("SELECT \"U_OrdType\" FROM " + Db.T(Db.TaskList) + " WHERE \"Code\" = " + Sql.Q(taskList)));
+            if (H("U_Safety") == "")
+                SetH("U_Safety", OrderService.TaskListSafety(taskList));
             Msg("Gamme " + taskList + " reprise : vérifiez les opérations et composants avant d'enregistrer.");
+        }
+
+        /// <summary>Ajoute aux composants les pièces de rechange retenues (fenêtre des pièces de l'équipement).</summary>
+        private void AddSpareParts(List<CompDraft> parts)
+        {
+            if (F == null || parts.Count == 0)
+                return;
+            Matrix mComps = Mat("mComps");
+            mComps.FlushToDataSource();
+            DBDataSource dComps = Lines(Db.OrderComps);
+            if (mComps.RowCount == 0)
+                while (dComps.Size > 0) dComps.RemoveRecord(0);
+            foreach (CompDraft c in parts)
+            {
+                int row = NewRow(dComps);
+                dComps.SetValue("U_ItemCode", row, c.ItemCode);
+                dComps.SetValue("U_ItemName", row, NotificationService.Truncate(c.ItemName, 100));
+                dComps.SetValue("U_Qty", row, Sql.N(c.Qty));
+                dComps.SetValue("U_Whs", row, c.Whs);
+                dComps.SetValue("U_Proc", row, c.Proc);
+                dComps.SetValue("U_UnitCost", row, Sql.N(OrderService.ItemCost(c.ItemCode, c.Whs)));
+            }
+            mComps.LoadFromDataSource();
+            SetModeUpdate();
+            F.Select();
+            SelectFolder("fComps");
+            Msg(parts.Count + " pièce(s) ajoutée(s) aux composants : enregistrez l'ordre.");
         }
 
         private static int MaxOpNo(DBDataSource ds)
@@ -494,6 +541,25 @@ namespace MaintenanceAddon.Forms
 
         protected override void OnButton(string itemUid)
         {
+            // Préparation : possible aussi sur un ordre pas encore enregistré
+            if (itemUid == "bParts")
+            {
+                if (H("U_Equip") == "")
+                {
+                    Msg("Indiquez d'abord l'équipement de l'ordre.", BoStatusBarMessageType.smt_Warning);
+                    return;
+                }
+                Navigator.Spares.Show(H("U_Equip"), DefaultWarehouse(), AddSpareParts);
+                return;
+            }
+            if (itemUid == "bPrint")
+            {
+                if (!RequireSaved())
+                    return;
+                Program.OpenFile(WorkOrderPrint.Save(CurrentDocEntry));
+                Msg("Bon de travail ouvert dans le navigateur : imprimez-le (Ctrl+P).");
+                return;
+            }
             string[] actions = { "bRel", "bTeco", "bUndo", "bClose", "bCancel", "bPR", "bConf", "bIssue", "bReturn", "bRecalc", "bShip" };
             if (Array.IndexOf(actions, itemUid) < 0 || !RequireSaved())
                 return;

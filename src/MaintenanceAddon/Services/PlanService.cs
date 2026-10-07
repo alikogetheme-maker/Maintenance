@@ -127,6 +127,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Appel du plan : crée l'ordre préventif depuis la gamme ; renvoie le DocEntry de l'ordre.</summary>
         public static int Call(string planCode)
         {
+            AuthService.Require(Perm.Order, "appeler un plan de maintenance");
             UdoData p = UdoData.Get(Obj.Plan, planCode);
             if (p.Str("U_Active") == "N")
                 throw new InvalidOperationException("Le plan " + planCode + " est inactif.");
@@ -158,6 +159,7 @@ namespace MaintenanceAddon.Services
                 Priority = priority,
                 Subject = p.Str("Name") + (counter ? " (à " + dueCnt.ToString("N0", CultureInfo.GetCultureInfo("fr-FR")) + ")" : ""),
                 Descr = p.Str("U_Remarks"),
+                Safety = OrderService.TaskListSafety(p.Str("U_TaskList")),
                 WorkCtr = p.Str("U_WorkCtr") != "" ? p.Str("U_WorkCtr") : eq?.WorkCtr ?? "",
                 OcrCode = eq?.OcrCode ?? "",
                 Start = start,
@@ -186,6 +188,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Saut d'échéance : aucune intervention, l'échéance suivante est calculée.</summary>
         public static void Skip(string planCode)
         {
+            AuthService.Require(Perm.Order, "ignorer une échéance de plan");
             UdoData p = UdoData.Get(Obj.Plan, planCode);
             if (OpenCallOrder(planCode) > 0 && p.Str("U_Basis") == SchedBasis.Completion)
                 throw new InvalidOperationException("Le plan a un ordre en cours : clôturez-le ou annulez-le.");

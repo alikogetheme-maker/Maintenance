@@ -24,6 +24,25 @@ namespace MaintenanceAddon.Forms
         protected override int FormWidth => 780;
         protected override int FormHeight => 560;
 
+        protected override string CanOpen()
+        {
+            return AuthService.Denied(Perm.Notif, Access.Read, "consulter les avis de maintenance");
+        }
+
+        protected override string CanEdit()
+        {
+            return AuthService.Denied(Perm.Notif, Access.Full, "déclarer ou modifier un avis de maintenance");
+        }
+
+        /// <summary>Avis urgent (priorité 1 ou arrêt) : message aux destinataires des alertes.</summary>
+        protected override void AfterSaved(string key, bool added)
+        {
+            if (!added || !int.TryParse(key, out int entry) || entry <= 0)
+                return;
+            if (AlertService.NotifyUrgent(entry) > 0)
+                Msg("Avis urgent : les responsables ont été prévenus par la messagerie SAP.", BoStatusBarMessageType.smt_Warning);
+        }
+
         protected override void Build()
         {
             const int lw = 110, x = 10, x2 = 400;

@@ -26,6 +26,7 @@ namespace MaintenanceAddon.Setup
             CreateTables();
             CreateDocumentFields();
             RegisterObjects();
+            CreatePermissions();
             EnsureSetupRow();
             SeedData();
             return _changed;
@@ -53,6 +54,9 @@ namespace MaintenanceAddon.Setup
             Fld(t, "P4Hours", "Délai priorité 4 (h)", 'N', 6);
             Fld(t, "Horizon", "Horizon ordonnancement (j)", 'N', 4);
             Fld(t, "CapAcct", "Cpte immobilisations en cours", 'A', 15);
+            Fld(t, "AlertUsr", "Destinataires des alertes", 'A', 254);
+            Fld(t, "AlertDays", "Horizon des alertes (j)", 'N', 4);
+            Fld(t, "AlertDt", "Dernier envoi des alertes", 'D');
 
             // ---- Postes techniques (IL01) -----------------------------------
             Table(Db.FuncLoc, "Maint. - Postes techniques", BoUTBTableType.bott_MasterData);
@@ -109,6 +113,17 @@ namespace MaintenanceAddon.Setup
             Fld(t, "Remarks", "Remarques", 'M');
             Fld(t, "MntVend", "Prestataire de maintenance", 'A', 15);
             Fld(t, "WarrVend", "Garant (fournisseur garantie)", 'A', 15);
+            // Lien avec SAP : n° de série reçu (OSRN), immobilisation, pièces jointes (ATC1)
+            Fld(t, "SerSys", "N° de série SAP (SysNumber)", 'N', 11);
+            Fld(t, "AssetNo", "Immobilisation SAP", 'A', 50);
+            Fld(t, "AtcEntry", "Pièces jointes SAP", 'N', 11);
+
+            Table(Db.EquipParts, "Maint. - Pièces de rechange", BoUTBTableType.bott_MasterDataLines);
+            t = "@" + Db.EquipParts;
+            Fld(t, "ItemCode", "Article", 'A', 50);
+            Fld(t, "ItemName", "Désignation", 'A', 100);
+            Fld(t, "Qty", "Quantité montée", 'Q');
+            Fld(t, "Remarks", "Remarque", 'A', 100);
 
             Table(Db.EquipPts, "Maint. - Points de mesure", BoUTBTableType.bott_MasterDataLines);
             t = "@" + Db.EquipPts;
@@ -129,6 +144,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "OrdType", "Type d'ordre", 'A', 4);
             Fld(t, "Active", "Active (Y/N)", 'A', 1);
             Fld(t, "Remarks", "Remarques", 'M');
+            Fld(t, "Safety", "Consignes de sécurité", 'M');
 
             Table(Db.TaskOps, "Maint. - Opérations de gamme", BoUTBTableType.bott_MasterDataLines);
             OperationFields("@" + Db.TaskOps, false);
@@ -229,6 +245,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "CapAcct", "Compte de règlement", 'A', 15);
             Fld(t, "SettJE", "Écriture de règlement", 'N', 11);
             Fld(t, "SettAmt", "Montant réglé", 'S');
+            Fld(t, "Safety", "Consignes de sécurité", 'M');
 
             Table(Db.OrderOps, "Maint. - Opérations d'ordre", BoUTBTableType.bott_DocumentLines);
             OperationFields("@" + Db.OrderOps, true);
@@ -384,7 +401,9 @@ namespace MaintenanceAddon.Setup
 
             // Objets avec écrans dédiés de l'add-on
             Register(Obj.FuncLoc, "Maint. - Postes techniques", BoUDOObjType.boud_MasterData, Db.FuncLoc, null, null);
-            Register(Obj.Equip, "Maint. - Équipements", BoUDOObjType.boud_MasterData, Db.Equip, new[] { Db.EquipPts }, null);
+            Register(Obj.Equip, "Maint. - Équipements", BoUDOObjType.boud_MasterData, Db.Equip, new[] { Db.EquipPts, Db.EquipParts }, null);
+            // Installations antérieures : la table des pièces de rechange est ajoutée à l'objet existant
+            EnsureChild(Obj.Equip, Db.EquipParts);
             Register(Obj.TaskList, "Maint. - Gammes", BoUDOObjType.boud_MasterData, Db.TaskList, new[] { Db.TaskOps, Db.TaskComps }, null);
             Register(Obj.Plan, "Maint. - Plans de maintenance", BoUDOObjType.boud_MasterData, Db.Plan, null, null);
             Register(Obj.Contract, "Maint. - Contrats de maintenance", BoUDOObjType.boud_MasterData, Db.Contract, new[] { Db.ContractEq }, null);
@@ -428,6 +447,72 @@ namespace MaintenanceAddon.Setup
                 d.Series = series;
                 ss.SetDefaultSeriesForAllUsers(d);
                 _changed = true;
+            }
+        }
+
+        /// <summary>Ajoute une table enfant à un objet déjà enregistré (mise à jour de l'add-on).</summary>
+        private static void EnsureChild(string code, string childTable)
+        {
+            if (Sql.Exists("SELECT 1 FROM \"UDO1\" WHERE \"Code\" = " + Sql.Q(code) + " AND \"TableName\" = " + Sql.Q(childTable)))
+                return;
+            UserObjectsMD md = (UserObjectsMD)DiCompany.Instance.GetBusinessObject(BoObjectTypes.oUserObjectsMD);
+            try
+            {
+                if (!md.GetByKey(code))
+                    return;
+                Report("Ajout de la table @" + childTable + " à l'objet " + code + "...");
+                if (md.ChildTables.Count > 0 && md.ChildTables.TableName != "")
+                    md.ChildTables.Add();
+                md.ChildTables.SetCurrentLine(md.ChildTables.Count - 1);
+                md.ChildTables.TableName = childTable;
+                DiCompany.ThrowIfError(md.Update(), "Ajout de la table @" + childTable + " à l'objet " + code);
+                _changed = true;
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(md);
+            }
+        }
+
+        // =====================================================================
+        // Autorisations (Gestion → Autorisations → Autorisations générales)
+        // =====================================================================
+
+        private static void CreatePermissions()
+        {
+            Permission(Services.Perm.Root, "Maintenance", null);
+            Permission(Services.Perm.MasterData, "Données de base (équipements, gammes, plans, contrats)", Services.Perm.Root);
+            Permission(Services.Perm.Notif, "Avis de maintenance", Services.Perm.Root);
+            Permission(Services.Perm.Order, "Ordres : création, lancement, achats, appels de plans", Services.Perm.Root);
+            Permission(Services.Perm.Exec, "Exécution : temps, pièces, relevés, envois", Services.Perm.Root);
+            Permission(Services.Perm.Close, "Clôture et annulation des ordres", Services.Perm.Root);
+            Permission(Services.Perm.Setup, "Paramètres de la maintenance", Services.Perm.Root);
+        }
+
+        /// <summary>
+        /// Autorisation supplémentaire (complète / lecture seule / aucune). SAP l'attribue
+        /// « aucune » aux utilisateurs existants : les super-utilisateurs gardent tous les droits.
+        /// </summary>
+        private static void Permission(string id, string name, string parent)
+        {
+            if (Sql.Exists("SELECT 1 FROM \"OUPT\" WHERE \"AbsId\" = " + Sql.Q(id)))
+                return;
+            UserPermissionTree upt = (UserPermissionTree)DiCompany.Instance.GetBusinessObject(BoObjectTypes.oUserPermissionTree);
+            try
+            {
+                Report("Création de l'autorisation « " + name + " »...");
+                upt.PermissionID = id;
+                upt.Name = name;
+                upt.Options = BoUPTOptions.bou_FullReadNone;
+                if (parent != null)
+                    upt.ParentID = parent;
+                upt.IsItem = parent == null ? BoYesNoEnum.tNO : BoYesNoEnum.tYES;
+                DiCompany.ThrowIfError(upt.Add(), "Création de l'autorisation " + id);
+                _changed = true;
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(upt);
             }
         }
 
@@ -534,6 +619,7 @@ namespace MaintenanceAddon.Setup
                 table.UserFields.Fields.Item("U_P3Hours").Value = 72;
                 table.UserFields.Fields.Item("U_P4Hours").Value = 168;
                 table.UserFields.Fields.Item("U_Horizon").Value = 30;
+                table.UserFields.Fields.Item("U_AlertDays").Value = 30;
                 DiCompany.ThrowIfError(table.Add(), "Initialisation du paramétrage maintenance");
             }
             finally

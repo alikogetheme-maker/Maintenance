@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using SAPbouiCOM;
@@ -27,6 +27,16 @@ namespace MaintenanceAddon.Forms
         protected override string Title => "Contrat de maintenance";
         protected override int FormWidth => 820;
         protected override int FormHeight => 580;
+
+        protected override string CanOpen()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Read, "consulter les contrats de maintenance");
+        }
+
+        protected override string CanEdit()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Full, "modifier les contrats de maintenance");
+        }
 
         protected override void Build()
         {

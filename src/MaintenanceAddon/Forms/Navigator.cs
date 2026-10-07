@@ -28,6 +28,8 @@ namespace MaintenanceAddon.Forms
         public static ConfirmationForm Confirmation;
         public static GoodsMovementForm Goods;
         public static ShipmentForm Shipment;
+        public static SerialPickerForm Serials;
+        public static SparePartsForm Spares;
 
         public static void Register(UdoForm form)
         {

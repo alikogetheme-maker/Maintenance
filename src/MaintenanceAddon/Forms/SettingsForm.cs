@@ -14,10 +14,16 @@ namespace MaintenanceAddon.Forms
         protected override string FormType => FormIds.SetupForm;
         protected override string Title => "Paramètres de la maintenance";
         protected override int FormWidth => 600;
-        protected override int FormHeight => 490;
+        protected override int FormHeight => 590;
 
         public void Show()
         {
+            string refusal = AuthService.Denied(Perm.Setup, Access.Read, "consulter les paramètres de la maintenance");
+            if (refusal != null)
+            {
+                Program.Message(App, refusal);
+                return;
+            }
             if (Open())
                 Load();
         }
@@ -32,8 +38,9 @@ namespace MaintenanceAddon.Forms
             AddUds("udDim", BoDataType.dt_SHORT_TEXT, 1);
             AddUds("udWhs", BoDataType.dt_SHORT_TEXT, 8);
             AddUds("udPref", BoDataType.dt_SHORT_TEXT, 5);
-            foreach (string id in new[] { "udP1", "udP2", "udP3", "udP4", "udHor" })
+            foreach (string id in new[] { "udP1", "udP2", "udP3", "udP4", "udHor", "udAlD" })
                 AddUds(id, BoDataType.dt_LONG_NUMBER);
+            AddUds("udAlert", BoDataType.dt_SHORT_TEXT, 254);
 
             U.Label("lSec1", "Comptabilisation", x, y, 300);
             y += Ui.Step + 2;
@@ -75,9 +82,21 @@ namespace MaintenanceAddon.Forms
             y += 6;
             U.Label("lHor", "Horizon d'ordonnancement par défaut (jours)", x, y, lw, "eHor");
             U.EditUds("eHor", x + lw, y, 60, "udHor");
+            y += Ui.Step + 10;
+
+            U.Label("lSec4", "Alertes (messagerie interne SAP)", x, y, 300);
+            y += Ui.Step + 2;
+            U.Label("lAlert", "Destinataires (codes utilisateurs SAP, séparés par des virgules)", x, y, lw, "eAlert");
+            U.EditUds("eAlert", x + lw, y, 310, "udAlert");
+            y += Ui.Step;
+            U.Label("lAlD", "Prévenir des garanties / contrats qui expirent sous (jours)", x, y, lw, "eAlD");
+            U.EditUds("eAlD", x + lw, y, 60, "udAlD");
+            y += Ui.Step;
+            U.Label("lAlInfo", "Envoi automatique une fois par jour (préventifs et ordres en retard, garanties, contrats, envois), et à chaque avis urgent.", x, y, 570);
 
             U.Button("bSave", "Enregistrer", x, FormHeight - 62, 100);
             U.Button("bClose", "Fermer", x + 105, FormHeight - 62, 90);
+            U.Button("bAlert", "Envoyer les alertes maintenant", x + 200, FormHeight - 62, 190);
         }
 
         private void AccountField(string labelId, string caption, string id, string uds, string cflId, int x, int y, int lw)
@@ -102,6 +121,8 @@ namespace MaintenanceAddon.Forms
             for (int i = 0; i < 4; i++)
                 SetUds("udP" + (i + 1), s.PriorityHours[i].ToString(CultureInfo.InvariantCulture));
             SetUds("udHor", s.HorizonDays.ToString(CultureInfo.InvariantCulture));
+            SetUds("udAlert", s.AlertUsers);
+            SetUds("udAlD", s.AlertDays.ToString(CultureInfo.InvariantCulture));
         }
 
         protected override void OnEvent(ItemEvent e)
@@ -121,6 +142,16 @@ namespace MaintenanceAddon.Forms
                 Close();
             else if (e.ItemUID == "bSave")
                 Save();
+            else if (e.ItemUID == "bAlert")
+            {
+                if (SettingsService.Load().AlertUsers == "")
+                {
+                    Program.Message(App, "Renseignez et enregistrez d'abord les destinataires des alertes.");
+                    return;
+                }
+                int message = AlertService.SendDaily(DateTime.Today, true);
+                Msg(message > 0 ? "Alertes envoyées dans la messagerie SAP des destinataires." : "Rien à signaler aujourd'hui : aucun message envoyé.");
+            }
         }
 
         private void Save()
@@ -135,7 +166,9 @@ namespace MaintenanceAddon.Forms
                 Dimension = int.TryParse(Uds("udDim"), out int d) && d >= 1 && d <= 5 ? d : 1,
                 DefaultWarehouse = Uds("udWhs").Trim(),
                 EquipPrefix = Uds("udPref").Trim(),
-                HorizonDays = Math.Max(1, (int)Sql.ParseDouble(Uds("udHor")))
+                HorizonDays = Math.Max(1, (int)Sql.ParseDouble(Uds("udHor"))),
+                AlertUsers = Uds("udAlert").Trim(),
+                AlertDays = Math.Max(1, (int)Sql.ParseDouble(Uds("udAlD")))
             };
             for (int i = 0; i < 4; i++)
             {

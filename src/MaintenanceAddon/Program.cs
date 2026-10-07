@@ -80,6 +80,18 @@ namespace MaintenanceAddon
                                 "Les autres utilisateurs connectés doivent se reconnecter.\n" +
                                 "Complétez ensuite Maintenance → Paramètres (comptes de charges).");
             _app.StatusBar.SetText("Add-on Maintenance démarré.", BoMessageTime.bmt_Short, BoStatusBarMessageType.smt_Success);
+
+            // Alertes du jour (une fois par jour, au premier démarrage) : ne bloque jamais l'add-on
+            try
+            {
+                int message = Services.AlertService.SendDaily(DateTime.Today, false);
+                if (message > 0)
+                    Log("Alertes du jour envoyées (message " + message + ")");
+            }
+            catch (Exception ex)
+            {
+                Log("Alertes du jour : " + ex.Message);
+            }
         }
 
         /// <summary>Crée les écrans et branche les menus (aussi utilisé par le banc de test des écrans).</summary>
@@ -98,6 +110,8 @@ namespace MaintenanceAddon
             Navigator.Confirmation = new ConfirmationForm(app);
             Navigator.Goods = new GoodsMovementForm(app);
             Navigator.Measurement = new MeasurementForm(app);
+            Navigator.Serials = new SerialPickerForm(app);
+            Navigator.Spares = new SparePartsForm(app);
             Navigator.Scheduling = _scheduling = new SchedulingForm(app);
             Navigator.Lists = _lists = new ListForm(app);
             Navigator.Settings = _settings = new SettingsForm(app);
@@ -116,6 +130,47 @@ namespace MaintenanceAddon
             if (MessageHook != null)
                 return MessageHook(text);
             return yesNo ? app.MessageBox(text, 2, "Oui", "Non") : app.MessageBox(text);
+        }
+
+        /// <summary>Banc de test des écrans : remplace la fenêtre de choix de fichier.</summary>
+        internal static Func<string, string> PickFileHook;
+
+        /// <summary>Banc de test des écrans : remplace l'ouverture d'un fichier (navigateur, lecteur PDF...).</summary>
+        internal static Action<string> OpenFileHook;
+
+        /// <summary>Fenêtre Windows de choix d'un fichier ; null si l'utilisateur annule.</summary>
+        internal static string PickFile(string title)
+        {
+            if (PickFileHook != null)
+                return PickFileHook(title);
+            string result = null;
+            // La boîte de dialogue exige un thread STA, au premier plan devant le client SAP
+            var t = new System.Threading.Thread(() =>
+            {
+                using (var owner = new System.Windows.Forms.Form { TopMost = true, ShowInTaskbar = false, Width = 0, Height = 0 })
+                using (var dlg = new System.Windows.Forms.OpenFileDialog { Title = title, Filter = "Tous les fichiers (*.*)|*.*", CheckFileExists = true })
+                {
+                    owner.Show();
+                    owner.Activate();
+                    if (dlg.ShowDialog(owner) == System.Windows.Forms.DialogResult.OK)
+                        result = dlg.FileName;
+                }
+            });
+            t.SetApartmentState(System.Threading.ApartmentState.STA);
+            t.Start();
+            t.Join();
+            return result;
+        }
+
+        /// <summary>Ouvre un fichier avec le programme associé de Windows.</summary>
+        internal static void OpenFile(string path)
+        {
+            if (OpenFileHook != null)
+            {
+                OpenFileHook(path);
+                return;
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
         }
 
         internal static void Log(string message)

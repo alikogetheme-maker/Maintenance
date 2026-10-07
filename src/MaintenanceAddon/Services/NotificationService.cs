@@ -101,6 +101,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Crée l'ordre correctif de l'avis (IW22 « Créer ordre ») et passe l'avis « en cours ».</summary>
         public static int CreateOrder(int notifEntry)
         {
+            AuthService.Require(Perm.Order, "créer un ordre");
             UdoData n = UdoData.Get(Obj.Notif, notifEntry);
             if (n.Str("U_Status") == NotifStatus.Completed)
                 throw new InvalidOperationException("L'avis est terminé : rouvrez-le avant de créer un ordre.");
@@ -166,6 +167,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Termine l'avis (NOCO). L'ordre éventuel doit être clôturé techniquement.</summary>
         public static void Complete(int notifEntry, DateTime date)
         {
+            AuthService.Require(Perm.Notif, "terminer un avis");
             UdoData n = UdoData.Get(Obj.Notif, notifEntry);
             if (n.Str("U_Status") == NotifStatus.Completed)
                 return;
@@ -190,6 +192,13 @@ namespace MaintenanceAddon.Services
         }
 
         public static void Reopen(int notifEntry)
+        {
+            AuthService.Require(Perm.Notif, "rouvrir un avis");
+            ReopenData(notifEntry);
+        }
+
+        /// <summary>Réouverture sans contrôle d'autorisation (annulation de la clôture technique de l'ordre).</summary>
+        internal static void ReopenData(int notifEntry)
         {
             UdoData n = UdoData.Get(Obj.Notif, notifEntry);
             if (n.Str("U_Status") != NotifStatus.Completed)

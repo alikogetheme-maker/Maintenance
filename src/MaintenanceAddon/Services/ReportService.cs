@@ -58,7 +58,9 @@ namespace MaintenanceAddon.Services
             { "JRest", "Jours restants" }, { "Preavis", "Résilier avant le" }, { "MontAn", "Montant annuel" }, { "Prorata", "Prévu à date" },
             { "Facture", "Facturé" }, { "NbEq", "Nb équipements" }, { "Envoi", "Envoyé le" }, { "RetPrev", "Retour prévu" },
             { "RetReel", "Revenu le" }, { "Jours", "Jours" }, { "Motif", "Motif" }, { "Garant", "Garant" }, { "FinGar", "Fin de garantie" },
-            { "Garantie", "Garantie" }, { "Couv", "Couverture" }, { "Delai", "Délai interv. (h)" }
+            { "Garantie", "Garantie" }, { "Couv", "Couverture" }, { "Delai", "Délai interv. (h)" },
+            { "Serie", "N° de série" }, { "SerFab", "N° fabricant" }, { "DocSrc", "Reçu par" }, { "Fourn", "Fournisseur" },
+            { "Fichier", "Fichier" }, { "QteMont", "Qté montée" }, { "Stock", "En stock" }, { "Mini", "Stock mini" }, { "Alerte", "À surveiller" }
         };
 
         public static readonly List<ReportView> Views = new List<ReportView>();
@@ -115,6 +117,11 @@ namespace MaintenanceAddon.Services
             {
                 Code = "MAT", Title = "Consommations de pièces", Sql = MaterialsSql,
                 NumObject = Obj.Order, Links = { { "Equip", Obj.Equip } }, Totals = new[] { "Valeur" }
+            });
+            Views.Add(new ReportView
+            {
+                Code = "SPR", Title = "Pièces de rechange des équipements (stock)", Sql = SparePartsSql, UsesDates = false,
+                Links = { { "Equip", Obj.Equip } }
             });
             Views.Add(new ReportView
             {
@@ -344,6 +351,19 @@ namespace MaintenanceAddon.Services
                    " UNION ALL SELECT o.\"DocEntry\", h.\"DocDate\", N'Retour', h.\"DocNum\", o.\"DocNum\", o.\"U_Equip\", l.\"ItemCode\", l.\"Dscription\", " +
                    "-l.\"Quantity\", -l.\"LineTotal\", l.\"WhsCode\" FROM \"IGN1\" l JOIN \"OIGN\" h ON h.\"DocEntry\" = l.\"DocEntry\"" + common +
                    " ORDER BY \"Date\" DESC, \"Doc\" DESC";
+        }
+
+        /// <summary>Pièces de rechange : stock total disponible face à la quantité montée et au stock mini de SAP.</summary>
+        private static string SparePartsSql(ReportFilter f)
+        {
+            return "SELECT x.*, CASE WHEN x.\"Stock\" < x.\"QteMont\" THEN N'Stock < quantité montée' " +
+                   " WHEN x.\"Mini\" > 0 AND x.\"Stock\" < x.\"Mini\" THEN N'Sous le stock mini' ELSE N'' END AS \"Alerte\" FROM (" +
+                   "SELECT p.\"Code\" AS \"Equip\", e.\"Name\" AS \"EqName\", p.\"U_ItemCode\" AS \"Article\", ISNULL(i.\"ItemName\", p.\"U_ItemName\") AS \"Desig\", " +
+                   "p.\"U_Qty\" AS \"QteMont\", ISNULL(i.\"OnHand\", 0) - ISNULL(i.\"IsCommited\", 0) AS \"Stock\", ISNULL(i.\"MinLevel\", 0) AS \"Mini\", " +
+                   "p.\"U_Remarks\" AS \"Comment\" " +
+                   "FROM " + Db.T(Db.EquipParts) + " p JOIN " + Db.T(Db.Equip) + " e ON e.\"Code\" = p.\"Code\" LEFT JOIN \"OITM\" i ON i.\"ItemCode\" = p.\"U_ItemCode\" " +
+                   "WHERE ISNULL(p.\"U_ItemCode\", '') <> '' AND ISNULL(e.\"U_Status\", 'A') <> 'S'" + Eq("p.\"Code\"", f.Equip) + ") x " +
+                   "ORDER BY CASE WHEN x.\"Stock\" < x.\"QteMont\" OR (x.\"Mini\" > 0 AND x.\"Stock\" < x.\"Mini\") THEN 0 ELSE 1 END, x.\"Equip\", x.\"Article\"";
         }
 
         private static string MeasurementsSql(ReportFilter f)

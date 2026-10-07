@@ -17,6 +17,7 @@ namespace MaintenanceAddon
         public const string Catalog = "MNT_OCAT";       // catalogues (partie d'objet, dommage, cause, activité)
         public const string Equip = "MNT_OEQP";         // équipements
         public const string EquipPts = "MNT_EQP1";      //   points de mesure de l'équipement
+        public const string EquipParts = "MNT_EQP2";    //   pièces de rechange de l'équipement (articles SAP)
         public const string TaskList = "MNT_OTSK";      // gammes
         public const string TaskOps = "MNT_TSK1";       //   opérations de gamme
         public const string TaskComps = "MNT_TSK2";     //   composants de gamme

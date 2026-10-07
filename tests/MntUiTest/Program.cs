@@ -10,6 +10,7 @@ using MaintenanceAddon.Models;
 using MaintenanceAddon.Services;
 using MaintenanceAddon.Setup;
 using UI = SAPbouiCOM;
+using DI = SAPbobsCOM;
 
 namespace MntUiTest
 {
@@ -33,6 +34,9 @@ namespace MntUiTest
         private static readonly List<string> StatusErrors = new List<string>();
         private static readonly List<string> StatusAll = new List<string>();
         private static readonly List<int> Orders = new List<int>();
+        private static readonly List<string> Opened = new List<string>();
+        private static readonly List<string> ShareFiles = new List<string>();
+        private static int _direct;
 
         private static void Check(bool cond, string label)
         {
@@ -210,7 +214,7 @@ namespace MntUiTest
 
         private static void CloseAll()
         {
-            foreach (string uid in new[] { FormIds.ConfForm, FormIds.GoodsForm, FormIds.ShipForm, FormIds.MeasureForm, FormIds.OrderForm, FormIds.NotifForm,
+            foreach (string uid in new[] { FormIds.SerialForm, FormIds.SparePartsForm, FormIds.ConfForm, FormIds.GoodsForm, FormIds.ShipForm, FormIds.MeasureForm, FormIds.OrderForm, FormIds.NotifForm,
                                            FormIds.EquipForm, FormIds.FuncLocForm, FormIds.TaskListForm, FormIds.PlanForm, FormIds.ContractForm,
                                            FormIds.SchedForm, FormIds.ListForm, FormIds.SetupForm })
                 CloseForm(uid);
@@ -245,14 +249,24 @@ namespace MntUiTest
                 Console.WriteLine("Ce banc ne s'exécute que sur TST_TST.");
                 return 2;
             }
-            if (System.Diagnostics.Process.GetProcessesByName("PaieUiTest").Length > 0)
+            string other = System.Diagnostics.Process.GetProcesses().Select(p => p.ProcessName)
+                .FirstOrDefault(n => n.EndsWith("UiTest", StringComparison.OrdinalIgnoreCase) && n != "MntUiTest");
+            if (other != null)
             {
-                Console.WriteLine("Le banc d'écrans de la Paie pilote déjà ce client SAP : relancez quand il est terminé.");
+                Console.WriteLine("Un autre banc d'écrans (" + other + ") pilote déjà ce client SAP : relancez quand il est terminé.");
                 return 3;
             }
             MetadataSetup.EnsureSchema();
 
             MaintenanceAddon.Program.MessageHook = text => { Messages.Add(text); return 1; };
+            MaintenanceAddon.Program.OpenFileHook = path => Opened.Add(path);
+            MaintenanceAddon.Program.PickFileHook = title =>
+            {
+                string f = Path.Combine(Path.GetTempPath(), "MntUiTest", "notice-" + S + ".txt");
+                Directory.CreateDirectory(Path.GetDirectoryName(f));
+                File.WriteAllText(f, "Notice de test " + S);
+                return f;
+            };
             _app.StatusBarEvent += (string text, UI.BoStatusBarMessageType type) =>
             {
                 StatusAll.Add((type == UI.BoStatusBarMessageType.smt_Error ? "ERREUR " : "") + text);
@@ -513,6 +527,7 @@ namespace MntUiTest
                 Pump(800);
                 int direct = (int)Sql.ScalarDbl("SELECT ISNULL(MAX(\"DocEntry\"), 0) FROM " + Db.T(Db.Order) + " WHERE \"U_Subject\" = " + Sql.Q("Graissage UI " + S));
                 if (direct > 0) Orders.Add(direct);
+                _direct = direct;
                 Row r = direct == 0 ? null : Sql.First("SELECT * FROM " + Db.T(Db.Order) + " WHERE \"DocEntry\" = " + direct);
                 Check(r != null && r.Str("U_Equip") == eq && r.Str("U_Status") == OrderStatus.Created && r.Str("U_FuncLoc") == fl, "Ordre enregistré (n° interne " + direct + ")");
                 Check(r != null && r.Dbl("U_PlLab") > 0, "Coûts prévus calculés après création");
@@ -579,14 +594,160 @@ namespace MntUiTest
                 CloseForm(FormIds.TaskListForm);
             });
 
+            // ---- Lot 3 : intégration SAP -----------------------------------------
+            Step("Équipement : pièces de rechange", () =>
+            {
+                Menu(FormIds.MenuEquip, FormIds.EquipForm);
+                UI.Form f = Form(FormIds.EquipForm);
+                f.Mode = UI.BoFormMode.fm_ADD_MODE;
+                Navigator.Open(Obj.Equip, eq);
+                Pump();
+                Check(f.Mode == UI.BoFormMode.fm_OK_MODE, "Équipement rouvert");
+                Click(f, "fParts");
+                Click(f, "bPaAdd");
+                Check(((UI.Matrix)f.Items.Item("mParts").Specific).RowCount == 1, "Ligne de pièce ajoutée");
+                Cell(f, "mParts", "cItem", 1, "CAS_HNKB_50");
+                Cell(f, "mParts", "cName", 1, "Pièce UI");
+                Cell(f, "mParts", "cQty", 1, "3");
+                Click(f, "1");
+                Pump(600);
+                Check(Sql.Exists("SELECT 1 FROM " + Db.T(Db.EquipParts) + " WHERE \"Code\" = " + Sql.Q(eq) + " AND \"U_ItemCode\" = 'CAS_HNKB_50' AND \"U_Qty\" = 3"),
+                      "Pièce de rechange enregistrée (quantité 3)");
+                Check(f.Mode == UI.BoFormMode.fm_OK_MODE, "Mode OK après mise à jour");
+                Click(f, "fTech");
+                bool asset = true;
+                try { f.Items.Item("eAsset"); } catch { asset = false; }
+                Check(!asset, "Module Immobilisations non utilisé : pas de champ « Immobilisation SAP »");
+            });
+
+            Step("Équipement : documents joints", () =>
+            {
+                UI.Form f = Form(FormIds.EquipForm);
+                Click(f, "fDocs");
+                Click(f, "bAtAdd");
+                Pump(600);
+                int atc = (int)Sql.ScalarDbl("SELECT ISNULL(\"U_AtcEntry\", 0) FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q(eq));
+                Check(atc > 0 && AttachmentService.Files(atc).Count == 1, "Document joint (pièce jointe SAP n° " + atc + ")");
+                foreach (Row r in AttachmentService.Files(atc))
+                    ShareFiles.Add(AttachmentService.FullPath(atc, r.Int("Line")));
+                var g = (UI.Grid)f.Items.Item("gAtc").Specific;
+                Check(g.Rows.Count == 1 && f.Mode == UI.BoFormMode.fm_OK_MODE, "Grille des documents rechargée");
+                g.Rows.SelectedRows.Add(0);
+                Click(f, "bAtOpen");
+                Check(Opened.Count > 0 && File.Exists(Opened.Last()) && Opened.Last().Contains(eq + "_notice"), "Ouverture du fichier : " + Opened.LastOrDefault());
+                Click(f, "bAtDel");
+                Pump(600);
+                Check(Sql.ScalarDbl("SELECT ISNULL(\"U_AtcEntry\", 0) FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q(eq)) == 0, "Document retiré");
+                Check(((UI.Grid)f.Items.Item("gAtc").Specific).Rows.Count <= 1 && Ui.IsEmpty(f.DataSources.DataTables.Item("dtAtc")), "Grille vide");
+            });
+
+            string ser = "UISN" + S, eqSer = "UIS" + S;
+            Step("Équipement : création depuis un n° de série reçu", () =>
+            {
+                // Réception d'achat d'un climatiseur géré par n° de série (article créé par le banc DI)
+                var pdn = (DI.Documents)DiCompany.Instance.GetBusinessObject(DI.BoObjectTypes.oPurchaseDeliveryNotes);
+                pdn.CardCode = "F00000001"; pdn.DocDate = DateTime.Today; pdn.DocDueDate = DateTime.Today; pdn.Comments = "Test écrans add-on Maintenance";
+                pdn.Lines.ItemCode = "MNTTEST_SER"; pdn.Lines.Quantity = 1; pdn.Lines.WarehouseCode = "ABJ"; pdn.Lines.UnitPrice = 380000;
+                pdn.Lines.SerialNumbers.InternalSerialNumber = ser; pdn.Lines.SerialNumbers.WarrantyEnd = DateTime.Today.AddYears(1); pdn.Lines.SerialNumbers.Quantity = 1;
+                DiCompany.ThrowIfError(pdn.Add(), "Réception de test");
+
+                UI.Form f = Form(FormIds.EquipForm);
+                NewRecord(f);
+                Click(f, "fTech");
+                Click(f, "bSerial");
+                Check(IsOpen(FormIds.SerialForm), "Liste des n° de série reçus ouverte");
+                UI.Form p = Form(FormIds.SerialForm);
+                Set(p, "eText", ser);
+                Click(p, "bSearch");
+                var g = (UI.Grid)p.Items.Item("gSer").Specific;
+                Check(g.Rows.Count == 1, "N° " + ser + " trouvé");
+                g.Rows.SelectedRows.Add(0);
+                Click(p, "bChoose");
+                Check(!IsOpen(FormIds.SerialForm), "Liste fermée après le choix");
+                Check(Get(f, "eSerial") == ser && Get(f, "eItem") == "MNTTEST_SER" && Get(f, "eVend") == "F00000001", "Fiche complétée : n°, article, fournisseur");
+                Check(Sql.ParseDouble(Get(f, "eAcqV")) == 380000 && Get(f, "eName") != "", "Valeur d'achat et désignation reprises (" + Get(f, "eAcqV") + ")");
+                Check(Uds(f, "udSrc").Contains("Réception de marchandises"), "Origine affichée : " + Uds(f, "udSrc"));
+                Set(f, UdoForm.KeyItem, eqSer);
+                Click(f, "1");
+                Pump(600);
+                Row r = Sql.First("SELECT * FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q(eqSer));
+                Check(r != null && r.Str("U_SerialNo") == ser && r.Int("U_SerSys") > 0 && r.Date("U_WarrEnd") == DateTime.Today.AddYears(1), "Équipement enregistré avec son n° de série SAP et sa garantie");
+
+                // Même n° saisi à la main sur une autre fiche : refusé
+                NewRecord(f);
+                Set(f, UdoForm.KeyItem, "UIX" + S);
+                Set(f, "eName", "Doublon UI");
+                Click(f, "fTech");
+                Set(f, "eItem", "MNTTEST_SER");
+                Set(f, "eSerial", ser);
+                Click(f, "1");
+                Check(!Sql.Exists("SELECT 1 FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q("UIX" + S)), "Doublon de n° de série refusé");
+                Check(StatusErrors.Any(s => s.Contains("déjà celui de l'équipement")), "Refus affiché dans la barre d'état");
+                CloseForm(FormIds.EquipForm);
+            }, errorsExpected: true);
+
+            Step("Ordre : pièces de l'équipement, sécurité, bon de travail", () =>
+            {
+                Navigator.Open(Obj.Order, _direct.ToString(CultureInfo.InvariantCulture));
+                Pump();
+                UI.Form f = Form(FormIds.OrderForm);
+                Check(f.Mode == UI.BoFormMode.fm_OK_MODE && Get(f, UdoForm.KeyItem) == _direct.ToString(CultureInfo.InvariantCulture), "Ordre rouvert");
+                Click(f, "fComps");
+                int rows = ((UI.Matrix)f.Items.Item("mComps").Specific).RowCount;
+                Click(f, "bParts");
+                Check(IsOpen(FormIds.SparePartsForm), "Pièces de rechange de l'équipement proposées");
+                UI.Form p = Form(FormIds.SparePartsForm);
+                Cell(p, "mSpr", "cQty", 1, "2");
+                Click(p, "bAdd");
+                Check(!IsOpen(FormIds.SparePartsForm), "Fenêtre fermée");
+                Check(((UI.Matrix)f.Items.Item("mComps").Specific).RowCount == rows + 1 && f.Mode == UI.BoFormMode.fm_UPDATE_MODE, "Pièce ajoutée aux composants");
+                Click(f, "fSafe");
+                ((UI.EditText)f.Items.Item("eSafe").Specific).Value = "Consigner l'armoire électrique.";
+                Pump(150);
+                Click(f, "1");
+                Pump(800);
+                Check(Sql.Exists("SELECT 1 FROM " + Db.T(Db.OrderComps) + " WHERE \"DocEntry\" = " + _direct + " AND \"U_ItemCode\" = 'CAS_HNKB_50' AND \"U_Qty\" = 2"), "Composant enregistré (quantité 2)");
+                Check(Sql.ScalarStr("SELECT CAST(\"U_Safety\" AS NVARCHAR(400)) FROM " + Db.T(Db.Order) + " WHERE \"DocEntry\" = " + _direct) == "Consigner l'armoire électrique.", "Consignes de sécurité enregistrées");
+                int before = Opened.Count;
+                Click(f, "bPrint");
+                Check(Opened.Count == before + 1 && System.Net.WebUtility.HtmlDecode(File.ReadAllText(Opened.Last())).Contains("Consigner l'armoire électrique") && File.ReadAllText(Opened.Last()).Contains("CAS_HNKB_50"),
+                      "Bon de travail ouvert : " + Opened.LastOrDefault());
+                CloseForm(FormIds.OrderForm);
+            });
+
+            Step("Avis urgent : message aux responsables", () =>
+            {
+                var s = SettingsService.Load();
+                s.AlertUsers = DiCompany.UserCode;
+                SettingsService.Save(s);
+                Menu(FormIds.MenuNotif, FormIds.NotifForm);
+                UI.Form f = Form(FormIds.NotifForm);
+                NewRecord(f);
+                Set(f, "eEq", eq);
+                ((UI.ComboBox)f.Items.Item("cPrio").Specific).Select("1", UI.BoSearchKey.psk_ByValue);
+                Pump(150);
+                Set(f, "eSubj", "Fumée UI " + S);
+                int maxMsg = (int)Sql.ScalarDbl("SELECT ISNULL(MAX(\"Code\"), 0) FROM \"OALR\"");
+                Click(f, "1");
+                Pump(800);
+                Check(Sql.Exists("SELECT 1 FROM \"OALR\" WHERE \"Code\" > " + maxMsg + " AND \"Subject\" LIKE " + Sql.Q("%avis urgent%Fumée UI " + S + "%")), "Message urgent dans la messagerie SAP");
+                Check(StatusAll.Any(m => m.Contains("prévenus")), "Utilisateur informé dans la barre d'état");
+                int n = (int)Sql.ScalarDbl("SELECT MAX(\"DocEntry\") FROM " + Db.T(Db.Notif) + " WHERE \"U_Subject\" = " + Sql.Q("Fumée UI " + S));
+                if (n > 0) NotificationService.Complete(n, DateTime.Today);
+                CloseForm(FormIds.NotifForm);
+            });
+
             // ---- Paramètres et rapports -----------------------------------------
-            Step("Paramètres : enregistrement", () =>
+            Step("Paramètres : enregistrement, alertes", () =>
             {
                 Menu(FormIds.MenuSetup, FormIds.SetupForm);
                 UI.Form f = Form(FormIds.SetupForm);
                 Check(Uds(f, "udExp") == SettingsService.Load().ExpenseAccount, "Compte de charges affiché (" + Uds(f, "udExp") + ")");
+                Check(Uds(f, "udAlert") == DiCompany.UserCode, "Destinataires des alertes affichés (" + Uds(f, "udAlert") + ")");
                 Click(f, "bSave");
                 Check(StatusAll.Any(s => s.Contains("enregistrés")), "Enregistré");
+                Click(f, "bAlert");
+                Check(StatusAll.Any(s => s.Contains("Alertes envoyées") || s.Contains("Rien à signaler")), "Envoi des alertes à la demande");
                 CloseForm(FormIds.SetupForm);
             });
 
@@ -618,6 +779,9 @@ namespace MntUiTest
             if (Sql.Exists("SELECT 1 FROM " + Db.T(Db.TaskList) + " WHERE \"Code\" = " + Sql.Q(tsk)))
                 UdoData.Delete(Obj.TaskList, tsk);
             Check(Orders.All(o => OrderService.Status(o) == OrderStatus.Closed || OrderService.Status(o) == OrderStatus.Cancelled), "Ordres de test clôturés ou annulés");
+            // Fichiers de test retirés du dossier partagé des pièces jointes de SAP
+            foreach (string f in ShareFiles)
+                try { File.Delete(f); } catch { }
         }
     }
 }

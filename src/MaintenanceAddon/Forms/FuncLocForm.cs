@@ -1,4 +1,4 @@
-using SAPbouiCOM;
+﻿using SAPbouiCOM;
 using MaintenanceAddon.Core;
 using MaintenanceAddon.Services;
 
@@ -19,6 +19,16 @@ namespace MaintenanceAddon.Forms
         protected override string Title => "Poste technique";
         protected override int FormWidth => 660;
         protected override int FormHeight => 520;
+
+        protected override string CanOpen()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Read, "consulter les postes techniques");
+        }
+
+        protected override string CanEdit()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Full, "modifier les postes techniques");
+        }
 
         protected override void Build()
         {

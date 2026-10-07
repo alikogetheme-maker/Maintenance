@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using SAPbouiCOM;
@@ -26,6 +26,16 @@ namespace MaintenanceAddon.Forms
         protected override string Title => "Plan de maintenance";
         protected override int FormWidth => 800;
         protected override int FormHeight => 600;
+
+        protected override string CanOpen()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Read, "consulter les plans de maintenance");
+        }
+
+        protected override string CanEdit()
+        {
+            return AuthService.Denied(Perm.MasterData, Access.Full, "modifier les plans de maintenance");
+        }
 
         protected override void Build()
         {

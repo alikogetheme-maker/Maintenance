@@ -74,6 +74,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Enregistre un relevé ; un compteur ne peut pas diminuer.</summary>
         public static MeasurementResult Record(string equip, string point, DateTime date, int timeHhmm, double value, string remarks)
         {
+            AuthService.Require(Perm.Exec, "saisir un relevé");
             MeasuringPoint mp = Point(equip, point);
             if (mp == null)
                 throw new InvalidOperationException("Point de mesure « " + point + " » introuvable sur l'équipement " + equip + ".");

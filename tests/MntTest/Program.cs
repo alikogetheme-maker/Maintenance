@@ -541,6 +541,163 @@ namespace MntTest
                 Check(true, "Avoir et contre-passation de test enregistrés");
             });
 
+            // ================= Lot 3 : intégration SAP =================
+            const string serItem = "MNTTEST_SER";
+            string sn = "SN" + S, eqSer = "TSE" + S;
+            Step("Lot 3 - schéma : pièces de rechange, liens SAP, autorisations", () =>
+            {
+                Check(Sql.Exists("SELECT 1 FROM \"UDO1\" WHERE \"Code\" = 'MNT_EQUIP' AND \"TableName\" = 'MNT_EQP2'"), "Table des pièces de rechange rattachée à l'objet équipement");
+                foreach (string f in new[] { "SerSys", "AssetNo", "AtcEntry" })
+                    Check(Sql.Exists("SELECT 1 FROM \"CUFD\" WHERE \"TableID\" = '@MNT_OEQP' AND \"AliasID\" = " + Sql.Q(f)), "Champ équipement U_" + f);
+                Check(Sql.ScalarDbl("SELECT COUNT(*) FROM \"OUPT\" WHERE \"AbsId\" LIKE 'MNT_AUTH%'") == 7, "7 autorisations Maintenance dans l'arbre SAP");
+                Check(Sql.ScalarStr("SELECT \"FathId\" FROM \"OUPT\" WHERE \"AbsId\" = " + Sql.Q(Perm.Order)) == Perm.Root, "Autorisations rangées sous « Maintenance »");
+                Check(AuthService.Level(Perm.Close) == Access.Full, "Super-utilisateur : autorisation complète");
+                string plain = Sql.ScalarStr("SELECT TOP 1 \"USER_CODE\" FROM \"OUSR\" u WHERE \"SUPERUSER\" = 'N' AND ISNULL(\"Locked\", 'N') = 'N' " +
+                                             "AND NOT EXISTS (SELECT 1 FROM \"USR3\" p WHERE p.\"UserLink\" = u.\"USERID\" AND p.\"PermId\" = " + Sql.Q(Perm.Order) + " AND p.\"Permission\" IN ('F', 'R'))");
+                Check(plain != "" && AuthService.Level(Perm.Order, plain) == Access.None, "Utilisateur sans droit (" + plain + ") : aucune autorisation tant que l'administrateur ne l'a pas donnée");
+                Check(!EquipmentService.FixedAssetsUsed(), "Module Immobilisations non utilisé dans TST_TST : champ immobilisation masqué");
+            });
+
+            Step("Lot 3 - n° de série reçu dans SAP → fiche équipement", () =>
+            {
+                if (!Sql.Exists("SELECT 1 FROM \"OITM\" WHERE \"ItemCode\" = " + Sql.Q(serItem)))
+                {
+                    var it = (Items)c.GetBusinessObject(BoObjectTypes.oItems);
+                    it.ItemCode = serItem; it.ItemName = "Climatiseur split 2 CV (test maintenance)";
+                    it.InventoryItem = BoYesNoEnum.tYES; it.PurchaseItem = BoYesNoEnum.tYES; it.SalesItem = BoYesNoEnum.tNO;
+                    it.ManageSerialNumbers = BoYesNoEnum.tYES;
+                    DiCompany.ThrowIfError(it.Add(), "Article de test géré par n° de série");
+                }
+                var pdn = (Documents)c.GetBusinessObject(BoObjectTypes.oPurchaseDeliveryNotes);
+                pdn.CardCode = garant; pdn.DocDate = DateTime.Today; pdn.DocDueDate = DateTime.Today;
+                pdn.Comments = "Test add-on Maintenance (n° de série)";
+                pdn.Lines.ItemCode = serItem; pdn.Lines.Quantity = 1; pdn.Lines.WarehouseCode = Whs; pdn.Lines.UnitPrice = 450000;
+                pdn.Lines.SerialNumbers.InternalSerialNumber = sn;
+                pdn.Lines.SerialNumbers.ManufacturerSerialNumber = "MF" + S;
+                pdn.Lines.SerialNumbers.WarrantyStart = DateTime.Today;
+                pdn.Lines.SerialNumbers.WarrantyEnd = DateTime.Today.AddYears(2);
+                pdn.Lines.SerialNumbers.Quantity = 1;
+                DiCompany.ThrowIfError(pdn.Add(), "Réception de marchandises de test");
+                string pdnNum = Sql.ScalarStr("SELECT \"DocNum\" FROM \"OPDN\" WHERE \"DocEntry\" = " + c.GetNewObjectKey());
+
+                SerialInfo si = EquipmentService.Serial(serItem, sn);
+                Check(si != null && si.Vendor == garant && si.MnfSerial == "MF" + S, "N° de série retrouvé avec son fournisseur et son n° fabricant");
+                Check(si != null && si.DocLabel == "Réception de marchandises" && si.DocNum == pdnNum && si.DocDate == DateTime.Today, "Document d'entrée : " + si?.Source());
+                Check(si != null && Math.Abs(si.UnitCost - 450000) < 0.01, "Valeur d'achat = prix de la réception (" + si?.UnitCost + ")");
+                Check(si != null && si.WarrantyEnd == DateTime.Today.AddYears(2), "Fin de garantie reprise du n° de série");
+                Check(Sql.Rows(EquipmentService.ReceivedSerialsSql(serItem, sn, true)).Count == 1, "Liste des n° reçus libres : 1 ligne");
+
+                string code = EquipmentService.CreateFromSerial(serItem, sn, eqSer, null, fl2);
+                Row e = Sql.First("SELECT * FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q(code));
+                Check(e != null && e.Str("U_ItemCode") == serItem && e.Str("U_SerialNo") == sn && e.Int("U_SerSys") == si.SysNumber, "Équipement créé depuis le n° de série (article, n°, n° système)");
+                Check(e.Str("Name") == "Climatiseur split 2 CV (test maintenance)" && e.Str("U_Vendor") == garant && Math.Abs(e.Dbl("U_AcqValue") - 450000) < 0.01 &&
+                      e.Date("U_AcqDate") == DateTime.Today && e.Date("U_WarrEnd") == DateTime.Today.AddYears(2),
+                      "Désignation, fournisseur, date et valeur d'achat, garantie repris sans ressaisie");
+                Check(e.Str("U_FuncLoc") == fl2, "Installé sur le poste technique indiqué");
+                Check(EquipmentInfo.Load(code).UnderWarranty(DateTime.Today), "Garantie active pour les ordres");
+                Fails(() => EquipmentService.CreateFromSerial(serItem, sn, "TSX" + S, null, null), "Même n° de série refusé pour un 2e équipement", "déjà rattaché");
+                Check(Sql.Rows(EquipmentService.ReceivedSerialsSql(serItem, sn, true)).Count == 0, "N° rattaché : n'apparaît plus dans les n° libres");
+                Check(Sql.Rows(EquipmentService.ReceivedSerialsSql(serItem, sn, false)).Any(r => r.Str("Equip") == code), "... mais visible (avec son équipement) sans le filtre");
+                Check(EquipmentService.Duplicate(eq, serItem, sn, "", "") != null, "Doublon détecté à la saisie manuelle (même article, même n°)");
+                Check(EquipmentService.Duplicate(code, serItem, sn, "", "") == null, "Pas de doublon avec lui-même");
+                Check(EquipmentService.Duplicate(eq, "", "ABC" + S, "Daikin", "") == null, "N° libre sans article : accepté");
+                Check(EquipmentService.CheckLinks(eq, Item, "", "", "ZZ_IMMO") != null, "Immobilisation inexistante refusée");
+                Fails(() => EquipmentService.CreateFromSerial(serItem, "INCONNU" + S, null, null, null), "N° de série non reçu refusé", "n'a pas été reçu");
+            });
+
+            Step("Lot 3 - pièces de rechange et sécurité", () =>
+            {
+                var e = UdoData.Get(Obj.Equip, eq);
+                var l = e.Lines(Db.EquipParts).Add();
+                l.SetProperty("U_ItemCode", Item); l.SetProperty("U_ItemName", "Pièce test"); l.SetProperty("U_Qty", 2.0);
+                var l2 = e.Lines(Db.EquipParts).Add();
+                l2.SetProperty("U_ItemCode", "CONSIG_12"); l2.SetProperty("U_ItemName", "Article non stocké"); l2.SetProperty("U_Qty", 1.0);
+                e.Update();
+                List<Row> parts = EquipmentService.SpareParts(eq, Whs);
+                Check(parts.Count == 2 && parts[0].Str("U_ItemCode") == Item && parts[0].Dbl("U_Qty") == 2, "2 pièces de rechange enregistrées sur l'équipement");
+                double avail = Sql.ScalarDbl("SELECT \"OnHand\" - \"IsCommited\" FROM \"OITW\" WHERE \"ItemCode\" = " + Sql.Q(Item) + " AND \"WhsCode\" = " + Sql.Q(Whs));
+                Check(Math.Abs(parts[0].Dbl("Dispo") - avail) < 0.001 && parts[1].Str("InvntItem") == "N", "Disponible du magasin (" + avail + ") et article non stocké signalé");
+                Check(Sql.Rows(ReportService.View("SPR").Sql(new ReportFilter { Equip = eq })).Count == 2, "Rapport des pièces de rechange : 2 lignes");
+
+                var t = UdoData.Get(Obj.TaskList, tsk);
+                t.Set("U_Safety", "Consigner l'alimentation électrique. Gants et lunettes obligatoires.");
+                t.Update();
+                var d = new OrderDraft { OrdType = "PM02", Equip = eq, TaskList = tsk, Subject = "Bon de travail test " + S, Start = DateTime.Today };
+                OrderService.LoadTaskList(tsk, d.Ops, d.Comps);
+                int o = OrderService.Create(d);
+                Check(Sql.ScalarStr("SELECT CAST(\"U_Safety\" AS NVARCHAR(4000)) FROM \"@MNT_OORD\" WHERE \"DocEntry\" = " + o).StartsWith("Consigner"), "Consignes de sécurité de la gamme reprises sur l'ordre");
+                string html = WorkOrderPrint.Html(o);
+                Check(html.Contains("BON DE TRAVAIL - Ordre n° " + OrderService.DocNum(o)) && html.Contains("CONSIGNES DE S"), "Bon de travail : titre et consignes de sécurité");
+                Check(html.Contains(eq) && html.Contains("Vidange moteur") && html.Contains(Item) && html.Contains("Relevés à noter"), "Bon de travail : équipement, opérations, pièces, relevés");
+                string path = WorkOrderPrint.Save(o);
+                Check(System.IO.File.Exists(path) && path.EndsWith(".html"), "Bon de travail enregistré : " + path);
+                OrderService.Cancel(o);
+            });
+
+            Step("Lot 3 - documents joints (pièces jointes SAP)", () =>
+            {
+                string dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MntTest" + S);
+                System.IO.Directory.CreateDirectory(dir);
+                string f1 = System.IO.Path.Combine(dir, "notice.txt"), f2 = System.IO.Path.Combine(dir, "certificat.txt");
+                System.IO.File.WriteAllText(f1, "Notice de test");
+                System.IO.File.WriteAllText(f2, "Certificat de test");
+                int a1 = AttachmentService.AddToEquipment(eq, f1);
+                int a2 = AttachmentService.AddToEquipment(eq, f2);
+                Check(a1 > 0 && a1 == a2 && Sql.ScalarDbl("SELECT \"U_AtcEntry\" FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q(eq)) == a1, "Pièce jointe SAP n° " + a1 + " rattachée à l'équipement");
+                List<Row> files = AttachmentService.Files(a1);
+                Check(files.Count == 2 && files[0].Str("FileName") == eq + "_notice", "2 documents, nommés d'après l'équipement (" + files[0].Str("FileName") + ")");
+                string p1 = AttachmentService.FullPath(a1, files[0].Int("Line"));
+                Check(System.IO.File.Exists(p1) && System.IO.File.ReadAllText(p1) == "Notice de test", "Fichier copié dans le dossier des pièces jointes de SAP");
+                int a3 = AttachmentService.RemoveFromEquipment(eq, files[0].Int("Line"));
+                List<Row> left = AttachmentService.Files(a3);
+                Check(a3 > 0 && left.Count == 1 && left[0].Str("FileName") == eq + "_certificat", "Document retiré : il reste le certificat");
+                Check(Sql.Rows(AttachmentService.FilesSql(a3)).Count == 1, "Grille des documents : 1 ligne");
+                int a4 = AttachmentService.RemoveFromEquipment(eq, left[0].Int("Line"));
+                Check(a4 == 0 && Sql.ScalarDbl("SELECT \"U_AtcEntry\" FROM " + Db.T(Db.Equip) + " WHERE \"Code\" = " + Sql.Q(eq)) == 0, "Dernier document retiré : plus de pièce jointe");
+                // Fichiers de test retirés du dossier partagé de SAP
+                foreach (int atc in new[] { a1 })
+                    foreach (Row r in AttachmentService.Files(atc))
+                        try { System.IO.File.Delete(AttachmentService.FullPath(atc, r.Int("Line"))); } catch { }
+                System.IO.Directory.Delete(dir, true);
+            });
+
+            Step("Lot 3 - alertes par la messagerie SAP", () =>
+            {
+                var s = SettingsService.Load();
+                s.AlertUsers = "zzinconnu";
+                Fails(() => SettingsService.Save(s), "Destinataire inconnu refusé", "inconnu");
+                s.AlertUsers = DiCompany.UserCode + ", " + DiCompany.UserCode;
+                s.AlertDays = 30;
+                SettingsService.Save(s);
+                Check(SettingsService.Load().AlertUsers == DiCompany.UserCode, "Destinataires enregistrés sans doublon (" + SettingsService.Load().AlertUsers + ")");
+
+                var e = UdoData.Get(Obj.Equip, eq);
+                e.Set("U_WarrEnd", DateTime.Today.AddDays(10));
+                e.Update();
+                string text = AlertService.DailyText(DateTime.Today, 30);
+                Check(text.Contains("Garanties qui expirent") && text.Contains(eq), "Alerte du jour : garantie de " + eq + " qui expire sous 10 jours");
+                int msg = AlertService.SendDaily(DateTime.Today, true);
+                Check(msg > 0 && Sql.Exists("SELECT 1 FROM \"OAIB\" b JOIN \"OUSR\" u ON u.\"USERID\" = b.\"UserSign\" WHERE b.\"AlertCode\" = " + msg + " AND u.\"USER_CODE\" = " + Sql.Q(DiCompany.UserCode)),
+                      "Message n° " + msg + " dans la messagerie de " + DiCompany.UserCode);
+                Check(Sql.ScalarStr("SELECT \"Subject\" FROM \"OALR\" WHERE \"Code\" = " + msg).StartsWith("Maintenance - alertes du"), "Objet du message");
+                Check(AlertService.SendDaily(DateTime.Today, false) == 0, "Pas de 2e envoi automatique le même jour");
+                Check(SettingsService.Load().AlertDate == DateTime.Today, "Date du dernier envoi mémorisée");
+
+                var n = UdoData.New(Obj.Notif);
+                n.Set("U_Type", "M2"); n.Set("U_Status", "OSNO"); n.Set("U_Equip", eq); n.Set("U_Priority", "1"); n.Set("U_Breakdwn", "N");
+                n.Set("U_Subject", "Panne urgente test " + S); n.Set("U_RepDate", DateTime.Today); n.Set("U_ReportBy", DiCompany.UserCode);
+                int un = n.Add();
+                int um = AlertService.NotifyUrgent(un);
+                Check(um > 0 && Sql.ScalarStr("SELECT \"Subject\" FROM \"OALR\" WHERE \"Code\" = " + um).Contains("avis urgent"), "Avis de priorité 1 : message urgent n° " + um);
+                var n2 = UdoData.New(Obj.Notif);
+                n2.Set("U_Type", "M1"); n2.Set("U_Status", "OSNO"); n2.Set("U_Equip", eq); n2.Set("U_Priority", "3"); n2.Set("U_Breakdwn", "N"); n2.Set("U_Subject", "Demande normale test");
+                Check(AlertService.NotifyUrgent(n2.Add()) == 0, "Avis normal : pas de message");
+                NotificationService.Complete(un, DateTime.Today);
+                e = UdoData.Get(Obj.Equip, eq);
+                e.ClearDate("U_WarrEnd");
+                e.Update();
+            });
+
             Step("Rapports (exécution de toutes les requêtes)", () =>
             {
                 var f = new ReportFilter { From = DateTime.Today.AddYears(-1), To = DateTime.Today.AddMonths(1) };

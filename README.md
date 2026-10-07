@@ -6,7 +6,10 @@ les objets et le cycle de vie du module **Maintenance (PM / EAM) de SAP S/4HANA*
 | S/4HANA | Transaction | Add-on (menu **Modules → Maintenance**) |
 |---|---|---|
 | Poste technique | IL01/IL02 | Données de base → Postes techniques |
-| Équipement | IE01/IE02 | Données de base → Équipements (points de mesure, historique, KPI 12 mois) |
+| Équipement | IE01/IE02 | Données de base → Équipements (article et n° de série SAP, pièces de rechange, documents, points de mesure, historique, KPI 12 mois) |
+| Nomenclature d'équipement (pièces de rechange) | IB01 | Équipement → onglet Pièces de rechange ; Ordre → Pièces de l'équipement |
+| Bon de travail | IW3M / impression d'ordre | Ordre → Bon de travail (page imprimable) |
+| Autorisations PM | Rôles PFCG | Autorisations SAP : Maintenance → 6 autorisations |
 | Poste de travail | IR01 | Données de base → Postes de travail (taux horaire, capacité) |
 | Gamme | IA05/IA06 | Données de base → Gammes de maintenance (opérations + pièces) |
 | Catalogues | QS41 | Données de base → Catalogues (partie d'objet, dommage, cause, activité) |
@@ -22,7 +25,7 @@ les objets et le cycle de vie du module **Maintenance (PM / EAM) de SAP S/4HANA*
 | Contrat de maintenance / garantie | BP_WAR, contrats de service | Données de base → Contrats de maintenance ; garantie sur la fiche équipement |
 | Réparation externe (envoi / retour) | Sous-traitance, IW8W | Envoi / retour chez un prestataire |
 | Règlement de l'ordre sur immobilisation | KO88 | Ordre « À immobiliser » → écriture de règlement à la clôture |
-| Listes, analyses | IW39, IW29, IH01, MCI* | Rapports (13 vues) |
+| Listes, analyses | IW39, IW29, IH01, MCI* | Rapports (14 vues) |
 
 ## 1. Compiler et lancer
 
@@ -44,14 +47,16 @@ Sur le serveur (DI API / UI API 10.0 x64) :
 
 L'add-on crée ce qui manque (idempotent, à chaque démarrage) :
 
-- 21 tables `@MNT_*` et leurs champs ;
+- 22 tables `@MNT_*` et leurs champs (la table des pièces de rechange `@MNT_EQP2` est
+  ajoutée à l'objet équipement d'une installation existante) ;
 - 10 objets UDO : `MNT_FLOC`, `MNT_EQUIP`, `MNT_WCTR`, `MNT_CATAL`, `MNT_EQCAT`,
   `MNT_TASKL`, `MNT_PLAN`, `MNT_CONTR` (données de base), `MNT_NOTIF`, `MNT_ORDER` (documents,
   avec une série « Primaire » créée automatiquement — modifiable dans *Gestion → Initialisation → Numérotation des documents*) ;
 - les champs `U_MNT_Ord` / `U_MNT_Line` (ordre imputé) et `U_MNT_Ctr` (contrat facturé)
   sur les lignes des documents marketing (sorties, entrées, demandes, commandes, factures et avoirs fournisseurs) ;
 - un paramétrage par défaut et des données d'exemple (catalogues, 5 catégories,
-  3 postes de travail).
+  3 postes de travail) ;
+- les **autorisations** « Maintenance » dans l'arbre des autorisations SAP (voir § 3).
 
 Les autres utilisateurs connectés doivent ensuite se reconnecter.
 
@@ -67,6 +72,27 @@ Les autres utilisateurs connectés doivent ensuite se reconnecter.
   postes techniques, équipements et ordres.
 - **Délais par priorité** : fin souhaitée / prévue = début + délai.
 - Postes de travail : renseigner les **taux horaires** (coûts prévus et réels).
+- **Alertes** : destinataires (codes utilisateurs SAP) et horizon en jours. Les alertes
+  arrivent dans la **messagerie interne SAP** : chaque avis urgent (priorité 1 ou arrêt),
+  et une fois par jour (premier démarrage de l'add-on de la journée, ou bouton *Envoyer les
+  alertes maintenant*) : préventifs en retard, ordres en retard, garanties qui expirent,
+  contrats à décider (fin ou préavis), équipements non revenus de chez le prestataire.
+- **Autorisations** (*Gestion → Initialisation système → Autorisations → Autorisations
+  générales → Autorisations utilisateur → Maintenance*), chacune *complète / lecture seule /
+  aucune* :
+
+  | Autorisation | Contrôle |
+  |---|---|
+  | Données de base | Postes techniques, équipements (et documents joints), gammes, plans, contrats |
+  | Avis de maintenance | Déclarer, modifier, terminer, rouvrir |
+  | Ordres | Créer, modifier, lancer, demandes d'achat, appels de plans |
+  | Exécution | Confirmations de temps, sorties / retours de pièces, relevés, envois / retours |
+  | Clôture | Clôture technique (et son annulation), clôture, annulation des ordres |
+  | Paramètres | Paramètres de la maintenance |
+
+  Lecture seule : l'écran s'ouvre mais n'enregistre pas. Les **super-utilisateurs** ont
+  tous les droits ; SAP donne « aucune » aux autres utilisateurs à la création : l'administrateur
+  doit les attribuer après l'installation (ex. technicien : Avis + Exécution complètes, Ordres en lecture).
 
 ## 4. Processus
 
@@ -120,6 +146,33 @@ Les autres utilisateurs connectés doivent ensuite se reconnecter.
 - Relevé de compteur : jamais en baisse, saisie chronologique.
 - Mesure hors limites (basse / haute du point) : proposition d'avis automatique.
 
+### Intégration aux données SAP
+La fiche équipement reste l'objet central de la maintenance (comme IE01 dans S/4HANA),
+qu'un module Immobilisations soit utilisé ou non ; elle **se rattache** aux données SAP :
+- **Article SAP** (articles hors immobilisations) et **n° de série reçu dans SAP** : le bouton
+  *N° reçus...* (onglet Données techniques) liste les n° de série reçus (réception de
+  marchandises, facture fournisseur, entrée de marchandises). Le choix d'un n° complète la
+  fiche sans ressaisie : article, n°, fabricant de l'article, fournisseur, date et valeur
+  d'achat (montant de la ligne / quantité), fin de garantie et année de fabrication du n° de
+  série. En création, c'est la façon la plus rapide de créer un équipement acheté.
+- **Doublons refusés** : un même n° de série (même article, ou même fabricant sans article)
+  ou une même immobilisation ne peut appartenir qu'à un équipement.
+- **Immobilisation SAP** : champ affiché seulement si la société a des articles de type
+  immobilisation (module utilisé) ; sinon, valeur et date d'acquisition suffisent, et le
+  règlement des ordres « À immobiliser » passe par le compte d'immobilisations en cours.
+- **Pièces de rechange** (onglet de la fiche) : articles SAP montés sur l'équipement. Dans
+  l'ordre, *Pièces de l'équipement...* les propose avec le stock disponible du magasin et
+  les ajoute aux composants. Rapport *Pièces de rechange des équipements (stock)* : stock
+  inférieur à la quantité montée ou au stock mini de l'article.
+- **Documents** (onglet de la fiche) : notices, photos, schémas, certificats dans les
+  **pièces jointes standard de SAP** (dossier des pièces jointes de la société, table ATC1),
+  fichiers préfixés par le code de l'équipement. *Retirer* reconstruit la pièce jointe sans le
+  fichier (l'API ne supprime pas de ligne) ; le fichier reste dans le dossier, comme dans SAP.
+- **Bon de travail** : depuis l'ordre enregistré, page HTML ouverte dans le navigateur pour
+  impression (appareil, lieu, garantie / contrat, travail demandé, **consignes de sécurité**,
+  opérations, pièces, relevés à noter, compte rendu, signatures). Les consignes de sécurité se
+  saisissent sur la gamme (onglet Sécurité) et sont recopiées sur l'ordre.
+
 ## 5. Règles de gestion
 
 | Règle | Détail |
@@ -134,6 +187,8 @@ Les autres utilisateurs connectés doivent ensuite se reconnecter.
 | Avis | M3 (rapport d'activité) ne génère pas d'ordre ; un avis lié à un ordre non clôturé ne peut pas être terminé seul |
 | Suppression | Données de base avec historique : non supprimables (passer « Mis au rebut » / inactif) ; documents : jamais supprimés |
 | Comptes | Les comptes saisis dans l'add-on doivent être imputables, non bloqués et non collectifs |
+| Équipements | N° de série et immobilisation uniques ; un n° de série saisi à la main est rattaché au n° SAP s'il a été reçu |
+| Autorisations | Contrôlées à l'ouverture et à l'enregistrement des écrans, et dans chaque action des services (même hors écran) |
 | Transactions | Chaque action (ordre + documents SAP + écritures + statuts liés) est faite dans une transaction DI API |
 
 Indicateurs (rapport *Indicateurs équipements*), sur la période choisie :
@@ -164,6 +219,12 @@ src/MaintenanceAddon/
   Services/PlanService.cs     Plans, échéances, appels
   Services/MeasurementService.cs   Points de mesure, relevés
   Services/ReportService.cs   Requêtes des rapports
+  Services/ContractService.cs Contrats, garantie / contexte d'intervention, envois chez un prestataire
+  Services/EquipmentService.cs     N° de série SAP, immobilisation, doublons, pièces de rechange
+  Services/AttachmentService.cs    Documents de l'équipement (pièces jointes SAP)
+  Services/AlertService.cs    Alertes par la messagerie interne SAP
+  Services/AuthService.cs     Autorisations (arbre des autorisations SAP)
+  Services/WorkOrderPrint.cs  Bon de travail imprimable (HTML)
   Forms/*.cs                  Écrans
 ```
 
@@ -191,7 +252,13 @@ circuit demande d'achat → commande → facture fournisseur → coût réel →
 (facture et règlement contre-passés en fin de test). Nb : par la DI API, une ligne
 de service copiée ne reprend pas son montant ; le test le renseigne (le client SAP le reprend).
 
-Dernier passage (04/10/2026) : **163 OK, 0 KO**.
+Il couvre enfin l'intégration SAP : réception d'un climatiseur géré par n° de série
+(article `MNTTEST_SER` créé au premier passage) → équipement créé depuis le n° reçu,
+doublons, pièces de rechange et leur rapport, consignes de sécurité et bon de travail,
+documents joints (fichiers de test retirés du dossier partagé à la fin), autorisations,
+alertes (messages dans la messagerie de l'utilisateur de test).
+
+Dernier passage (07/10/2026) : **212 OK, 0 KO**.
 
 ### Banc des écrans (client SAP ouvert)
 
@@ -201,8 +268,12 @@ poste technique → équipement (point de mesure) → avis → ordre, ajoute des
 lance, confirme du temps, TECO, clôture ; vérifie les refus d'enregistrement (aucun
 document vide), la gamme, les paramètres et chaque rapport. Les boîtes de message
 passent par `Program.Message` (réponse automatique « Oui ») ; les erreurs de la barre
-d'état et du journal font échouer l'étape. Il refuse de démarrer si le banc d'écrans
-de la Paie tourne (même client).
+d'état et du journal font échouer l'étape. Il refuse de démarrer si un autre banc
+d'écrans (`*UiTest`) tourne (même client). Le choix et l'ouverture de fichier passent par
+`Program.PickFileHook` / `Program.OpenFileHook`. Il teste aussi les pièces de rechange, les
+documents joints, la création d'un équipement depuis un n° de série reçu (et le refus du
+doublon), les pièces de l'équipement dans l'ordre, les consignes de sécurité, le bon de
+travail, l'avis urgent et l'envoi des alertes.
 
 ```
 "C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\amd64\MSBuild.exe" tests\MntUiTest\MntUiTest.csproj -restore
@@ -210,7 +281,8 @@ tests\MntUiTest\bin\MntUiTest.exe
 ```
 
 Données laissées (suffixe horaire) : postes UIF*, équipements UIE*, avis, ordres
-clôturés ou annulés ; la gamme UIG* est supprimée. Dernier passage (04/10/2026) : **109 OK, 0 KO**.
+clôturés ou annulés, équipements UIS* créés depuis un n° de série (réception d'achat de
+test) ; la gamme UIG* est supprimée. Dernier passage (07/10/2026) : **141 OK, 0 KO**.
 
 Pièges UI API corrigés grâce à ce banc (socle `Core` identique à l'add-on Paie) :
 un seul abonnement aux événements (`Core/EventHub.cs`, sinon un refus de `Validate()`
@@ -224,8 +296,10 @@ non recréée ; champ numérique utilisateur non vidable (`Invalid field value`)
 
 - SQL Server uniquement (requêtes T-SQL).
 - Une seule fenêtre ouverte par type d'objet (comme la majorité des écrans d'add-on).
-- Pas de gestion de capacité / planification graphique, ni de stratégies de
-  maintenance multi-cycles, ni de garanties fournisseurs (au-delà de la date de fin).
+- Volontairement hors périmètre (module simple) : gestion de capacité / planification
+  graphique, stratégies multi-cycles, tournées d'inspection, budgets, permis de travail
+  détaillés, amortissements (le lien vers l'immobilisation SAP est une référence).
+- Le bon de travail est une page HTML (pas d'état Crystal) : l'impression passe par le navigateur.
 - Unité de stock uniquement pour les composants (pas d'unités de mesure secondaires).
 - Les règles sont appliquées par l'add-on : une écriture directe en base ou une
   modification hors add-on n'est pas contrôlée.

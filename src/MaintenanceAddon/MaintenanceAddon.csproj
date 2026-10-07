@@ -59,7 +59,14 @@
     <Compile Include="Services\MeasurementService.cs" />
     <Compile Include="Services\ReportService.cs" />
     <Compile Include="Services\ContractService.cs" />
+    <Compile Include="Services\AuthService.cs" />
+    <Compile Include="Services\EquipmentService.cs" />
+    <Compile Include="Services\AttachmentService.cs" />
+    <Compile Include="Services\AlertService.cs" />
+    <Compile Include="Services\WorkOrderPrint.cs" />
     <Compile Include="Forms\ContractForm.cs" />
+    <Compile Include="Forms\SerialPickerForm.cs" />
+    <Compile Include="Forms\SparePartsForm.cs" />
     <Compile Include="Forms\ShipmentForm.cs" />
     <Compile Include="Forms\FormIds.cs" />
     <Compile Include="Forms\Navigator.cs" />

@@ -99,6 +99,12 @@ namespace MaintenanceAddon.Core
         /// <summary>Contrôle avant suppression ; renvoie un message d'erreur ou null.</summary>
         protected virtual string CanDelete() { return null; }
 
+        /// <summary>Contrôle avant ouverture de l'écran (autorisations) ; renvoie un message de refus ou null.</summary>
+        protected virtual string CanOpen() { return null; }
+
+        /// <summary>Contrôle avant création / mise à jour (autorisations) ; renvoie un message de refus ou null.</summary>
+        protected virtual string CanEdit() { return null; }
+
         /// <summary>Contrôle avant suppression d'une ligne de matrice (row = 0..n-1).</summary>
         protected virtual string CanDeleteLine(string table, DBDataSource ds, int row) { return null; }
 
@@ -122,12 +128,25 @@ namespace MaintenanceAddon.Core
 
         public void Show()
         {
+            EnsureOpen();
+        }
+
+        /// <summary>Ouvre (ou active) l'écran ; false si l'ouverture est refusée.</summary>
+        private bool EnsureOpen()
+        {
             if (F != null)
             {
                 F.Select();
-                return;
+                return true;
+            }
+            string refusal = CanOpen();
+            if (refusal != null)
+            {
+                Program.Message(App, refusal);
+                return false;
             }
             Create();
+            return F != null;
         }
 
         /// <summary>Ouvre l'écran sur l'enregistrement (DocEntry ou Code).</summary>
@@ -135,7 +154,8 @@ namespace MaintenanceAddon.Core
         {
             if (string.IsNullOrEmpty(key))
                 return;
-            Show();
+            if (!EnsureOpen())
+                return;
             if (F.Mode == BoFormMode.fm_UPDATE_MODE || (F.Mode == BoFormMode.fm_ADD_MODE && IsDirtyAdd()))
             {
                 if (Program.Message(App, "Des modifications ne sont pas enregistrées dans « " + Title + " ». Les abandonner ?", true) != 1)
@@ -149,7 +169,8 @@ namespace MaintenanceAddon.Core
         /// <summary>Ouvre l'écran en création, pré-rempli par l'appelant.</summary>
         public void ShowNew(Action prefill)
         {
-            Show();
+            if (!EnsureOpen())
+                return;
             if (F.Mode != BoFormMode.fm_ADD_MODE)
             {
                 if (F.Mode == BoFormMode.fm_UPDATE_MODE &&
@@ -657,6 +678,12 @@ namespace MaintenanceAddon.Core
                 case BoEventTypes.et_ITEM_PRESSED:
                     if (e.ItemUID == "1" && (F.Mode == BoFormMode.fm_ADD_MODE || F.Mode == BoFormMode.fm_UPDATE_MODE))
                     {
+                        string denied = CanEdit();
+                        if (denied != null)
+                        {
+                            Msg(denied.Split('\n')[0], BoStatusBarMessageType.smt_Error);
+                            return false;
+                        }
                         FlushMatrices();
                         string error = Validate();
                         if (error != null)

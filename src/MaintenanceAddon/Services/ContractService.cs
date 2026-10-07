@@ -177,6 +177,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Enregistre l'envoi : l'équipement passe « Chez le prestataire ».</summary>
         public static string Send(string equip, string vendor, int orderEntry, DateTime sent, DateTime? expectedReturn, string reason)
         {
+            AuthService.Require(Perm.Exec, "enregistrer un envoi chez un prestataire");
             EquipmentInfo eq = EquipmentInfo.Load(equip);
             if (eq == null)
                 throw new InvalidOperationException("Équipement inconnu : " + equip);
@@ -228,6 +229,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Retour de l'équipement : il reprend son statut d'avant l'envoi.</summary>
         public static void Return(string equip, DateTime returned, string note)
         {
+            AuthService.Require(Perm.Exec, "enregistrer un retour de chez le prestataire");
             Row open = OpenShipment(equip);
             if (open == null)
                 throw new InvalidOperationException("Aucun envoi en cours pour l'équipement " + equip + ".");

@@ -43,6 +43,8 @@ namespace MaintenanceAddon.Services
         public string Priority = "3";
         public string Subject = "";
         public string Descr = "";
+        /// <summary>Consignes de sécurité (reprises de la gamme).</summary>
+        public string Safety = "";
         public string WorkCtr = "";
         public string OcrCode = "";
         public DateTime? Start;
@@ -104,6 +106,13 @@ namespace MaintenanceAddon.Services
                 "NULLIF(i.\"AvgPrice\", 0), i.\"LastPurPrc\", 0) FROM \"OITM\" i WHERE i.\"ItemCode\" = " + Sql.Q(itemCode));
         }
 
+        /// <summary>Consignes de sécurité d'une gamme.</summary>
+        public static string TaskListSafety(string taskList)
+        {
+            return string.IsNullOrEmpty(taskList) ? "" :
+                Sql.ScalarStr("SELECT CAST(\"U_Safety\" AS NVARCHAR(MAX)) FROM " + Db.T(Db.TaskList) + " WHERE \"Code\" = " + Sql.Q(taskList));
+        }
+
         /// <summary>Opérations et composants d'une gamme (IA05) pour pré-remplir un ordre.</summary>
         public static void LoadTaskList(string taskList, List<OpDraft> ops, List<CompDraft> comps)
         {
@@ -156,6 +165,7 @@ namespace MaintenanceAddon.Services
             o.Set("U_Priority", string.IsNullOrEmpty(d.Priority) ? "3" : d.Priority);
             o.Set("U_Subject", NotificationService.Truncate(d.Subject, 100));
             o.Set("U_Descr", d.Descr);
+            o.Set("U_Safety", string.IsNullOrEmpty(d.Safety) ? TaskListSafety(d.TaskList) : d.Safety);
             o.Set("U_WorkCtr", d.WorkCtr);
             o.Set("U_OcrCode", d.OcrCode);
             o.Set("U_Respons", DiCompany.UserCode);
@@ -221,6 +231,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Lancement (CRTD → REL) : autorise sorties de stock et confirmations.</summary>
         public static void Release(int docEntry)
         {
+            AuthService.Require(Perm.Order, "lancer un ordre");
             UdoData o = UdoData.Get(Obj.Order, docEntry);
             RequireStatus(o, OrderStatus.Created, "lancer");
             if (o.Lines(Db.OrderOps).Count == 0)
@@ -241,6 +252,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Clôture technique (REL → TECO) : termine l'avis, met à jour le plan.</summary>
         public static void TechnicallyComplete(int docEntry, DateTime date)
         {
+            AuthService.Require(Perm.Close, "clôturer techniquement un ordre");
             UdoData o = UdoData.Get(Obj.Order, docEntry);
             RequireStatus(o, OrderStatus.Released, "clôturer techniquement");
             DateTime? start = o.Date("U_ActStart") ?? o.Date("U_RelDate");
@@ -267,6 +279,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Annulation de la clôture technique (TECO → REL).</summary>
         public static void UndoTechnicalCompletion(int docEntry)
         {
+            AuthService.Require(Perm.Close, "annuler une clôture technique");
             UdoData o = UdoData.Get(Obj.Order, docEntry);
             RequireStatus(o, OrderStatus.TechCompleted, "rouvrir");
             o.Set("U_Status", OrderStatus.Released);
@@ -277,7 +290,7 @@ namespace MaintenanceAddon.Services
                 o.Update();
                 int notif = (int)o.Dbl("U_NotifNo");
                 if (notif > 0)
-                    NotificationService.Reopen(notif);
+                    NotificationService.ReopenData(notif);
                 PlanService.OnOrderReopened(docEntry);
             });
         }
@@ -285,6 +298,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Clôture (TECO → CLSD) : plus aucune imputation possible.</summary>
         public static void Close(int docEntry)
         {
+            AuthService.Require(Perm.Close, "clôturer un ordre");
             UdoData o = UdoData.Get(Obj.Order, docEntry);
             RequireStatus(o, OrderStatus.TechCompleted, "clôturer");
 
@@ -405,6 +419,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Annulation d'un ordre sans aucune imputation (CRTD ou REL).</summary>
         public static void Cancel(int docEntry)
         {
+            AuthService.Require(Perm.Close, "annuler un ordre");
             UdoData o = UdoData.Get(Obj.Order, docEntry);
             string st = o.Str("U_Status");
             if (st != OrderStatus.Created && st != OrderStatus.Released)
@@ -453,6 +468,7 @@ namespace MaintenanceAddon.Services
 
         private static string PostMovement(int docEntry, IList<Movement> moves, DateTime date, bool issue)
         {
+            AuthService.Require(Perm.Exec, issue ? "sortir des pièces du stock" : "remettre des pièces en stock");
             moves = moves.Where(m => m.Qty > 0).ToList();
             if (moves.Count == 0)
                 throw new InvalidOperationException("Saisissez au moins une quantité.");
@@ -559,6 +575,7 @@ namespace MaintenanceAddon.Services
         /// <summary>Crée les demandes d'achat manquantes ; renvoie un message récapitulatif.</summary>
         public static string CreatePurchaseRequests(int docEntry)
         {
+            AuthService.Require(Perm.Order, "créer des demandes d'achat");
             UdoData o = UdoData.Get(Obj.Order, docEntry);
             string st = o.Str("U_Status");
             if (st != OrderStatus.Created && st != OrderStatus.Released)
@@ -696,6 +713,7 @@ namespace MaintenanceAddon.Services
 
         public static void Confirm(int docEntry, ConfirmationDraft c)
         {
+            AuthService.Require(Perm.Exec, "confirmer des temps");
             if (c.Hours == 0)
                 throw new InvalidOperationException("Saisissez un nombre d'heures (négatif pour corriger une confirmation).");
             if (c.Date > DateTime.Today)

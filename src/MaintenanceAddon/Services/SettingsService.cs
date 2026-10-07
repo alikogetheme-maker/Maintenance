@@ -18,6 +18,12 @@ namespace MaintenanceAddon.Services
         public int HorizonDays = 30;
         /// <summary>Compte de règlement par défaut des ordres à immobiliser (immobilisations en cours).</summary>
         public string CapitalAccount = "";
+        /// <summary>Utilisateurs SAP qui reçoivent les alertes (codes séparés par des virgules).</summary>
+        public string AlertUsers = "";
+        /// <summary>Horizon des alertes : garanties et contrats qui expirent dans ce nombre de jours.</summary>
+        public int AlertDays = 30;
+        /// <summary>Date du dernier envoi des alertes quotidiennes.</summary>
+        public DateTime? AlertDate;
 
         /// <summary>Délai de réalisation (heures) d'une priorité 1 à 4.</summary>
         public int HoursFor(string priority)
@@ -52,6 +58,9 @@ namespace MaintenanceAddon.Services
             };
             s.HorizonDays = Positive(r.Int("U_Horizon"), 30);
             s.CapitalAccount = r.Str("U_CapAcct");
+            s.AlertUsers = r.Str("U_AlertUsr");
+            s.AlertDays = Positive(r.Int("U_AlertDays"), 30);
+            s.AlertDate = r.Date("U_AlertDt");
             return s;
         }
 
@@ -62,6 +71,7 @@ namespace MaintenanceAddon.Services
 
         public static void Save(Settings s)
         {
+            AuthService.Require(Perm.Setup, "modifier les paramètres");
             CheckAccount(s.ExpenseAccount, "Compte de charges de maintenance");
             CheckAccount(s.LaborExpenseAccount, "Compte de charges de main-d'oeuvre");
             CheckAccount(s.LaborAbsorptionAccount, "Compte d'imputation de main-d'oeuvre");
@@ -70,6 +80,7 @@ namespace MaintenanceAddon.Services
                 throw new InvalidOperationException("Pour comptabiliser la main-d'oeuvre, renseignez les deux comptes de main-d'oeuvre.");
             if (s.DefaultWarehouse != "" && !Sql.Exists("SELECT 1 FROM \"OWHS\" WHERE \"WhsCode\" = " + Sql.Q(s.DefaultWarehouse)))
                 throw new InvalidOperationException("Magasin inconnu : " + s.DefaultWarehouse);
+            s.AlertUsers = AlertService.NormalizeUsers(s.AlertUsers);
 
             UserTable table = DiCompany.Instance.UserTables.Item(Db.Setup);
             try
@@ -90,6 +101,8 @@ namespace MaintenanceAddon.Services
                 f.Item("U_P4Hours").Value = s.PriorityHours[3];
                 f.Item("U_Horizon").Value = s.HorizonDays;
                 f.Item("U_CapAcct").Value = s.CapitalAccount;
+                f.Item("U_AlertUsr").Value = s.AlertUsers;
+                f.Item("U_AlertDays").Value = s.AlertDays;
                 DiCompany.ThrowIfError(table.Update(), "Enregistrement des paramètres");
             }
             finally
