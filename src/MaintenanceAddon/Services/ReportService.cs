@@ -60,6 +60,8 @@ namespace MaintenanceAddon.Services
             { "RetReel", "Revenu le" }, { "Jours", "Jours" }, { "Motif", "Motif" }, { "Garant", "Garant" }, { "FinGar", "Fin de garantie" },
             { "Garantie", "Garantie" }, { "Couv", "Couverture" }, { "Delai", "Délai interv. (h)" },
             { "Serie", "N° de série" }, { "SerFab", "N° fabricant" }, { "DocSrc", "Reçu par" }, { "Fourn", "Fournisseur" },
+            { "Produit", "Produit" }, { "Ligne", "Ligne" }, { "QtePrev", "Qté prévue" }, { "QteProd", "Qté produite" }, { "NbAvis", "Nb avis" },
+            { "ArretProd", "Arrêt production (h)" }, { "QtePerdue", "Qté perdue" }, { "CoutMaint", "Coût maintenance" }, { "Lien", "Lien avec l'OF" },
             { "Fichier", "Fichier" }, { "QteMont", "Qté montée" }, { "Stock", "En stock" }, { "Mini", "Stock mini" }, { "Alerte", "À surveiller" }
         };
 
@@ -120,6 +122,11 @@ namespace MaintenanceAddon.Services
             });
             Views.Add(new ReportView
             {
+                Code = "PRD", Title = "Maintenance par ordre de fabrication", Sql = ProductionSql, Statuses = ProdStatus.List,
+                NumObject = ProdObject, Totals = new[] { "QteProd", "NbAvis", "NbOrd", "ArretProd", "QtePerdue", "CoutMaint" }
+            });
+            Views.Add(new ReportView
+            {
                 Code = "SPR", Title = "Pièces de rechange des équipements (stock)", Sql = SparePartsSql, UsesDates = false,
                 Links = { { "Equip", Obj.Equip } }
             });
@@ -161,7 +168,7 @@ namespace MaintenanceAddon.Services
         }
 
         /// <summary>Durée d'arrêt (h) d'un avis de panne ; une panne en cours compte jusqu'à maintenant.</summary>
-        private static string Downtime(string n)
+        internal static string Downtime(string n)
         {
             return "CASE WHEN " + n + ".\"U_Breakdwn\" = 'Y' AND " + n + ".\"U_MalfStD\" IS NOT NULL THEN " +
                    "DATEDIFF(minute, " + Ts(n + ".\"U_MalfStD\"", n + ".\"U_MalfStT\"") + ", " +
@@ -351,6 +358,32 @@ namespace MaintenanceAddon.Services
                    " UNION ALL SELECT o.\"DocEntry\", h.\"DocDate\", N'Retour', h.\"DocNum\", o.\"DocNum\", o.\"U_Equip\", l.\"ItemCode\", l.\"Dscription\", " +
                    "-l.\"Quantity\", -l.\"LineTotal\", l.\"WhsCode\" FROM \"IGN1\" l JOIN \"OIGN\" h ON h.\"DocEntry\" = l.\"DocEntry\"" + common +
                    " ORDER BY \"Date\" DESC, \"Doc\" DESC";
+        }
+
+        /// <summary>Objet SAP « ordre de fabrication » : le double-clic ouvre le suivi de maintenance de l'OF.</summary>
+        public const string ProdObject = "202";
+
+        /// <summary>
+        /// Par ordre de fabrication : avis et ordres de maintenance rattachés, arrêt de production
+        /// (pannes avec ligne arrêtée), quantité perdue, coût réel des ordres.
+        /// </summary>
+        private static string ProductionSql(ReportFilter f)
+        {
+            return "SELECT w.\"DocEntry\" AS \"Key\", w.\"DocNum\" AS \"Num\", w.\"ItemCode\" AS \"Article\", ISNULL(w.\"ProdName\", i.\"ItemName\") AS \"Produit\", " +
+                   "COALESCE(NULLIF(w.\"U_MNT_PLine\", ''), NULLIF(i.\"U_MNT_PLine\", ''), '') AS \"Ligne\", " +
+                   ProdStatus.List.SqlCase("w.\"Status\"") + " AS \"Statut\", COALESCE(w.\"StartDate\", w.\"PostDate\") AS \"Date\", " +
+                   "w.\"PlannedQty\" AS \"QtePrev\", w.\"CmpltQty\" AS \"QteProd\", " +
+                   "(SELECT COUNT(*) FROM " + Db.T(Db.Notif) + " n WHERE n.\"U_ProdOrd\" = w.\"DocEntry\") AS \"NbAvis\", " +
+                   "(SELECT COUNT(*) FROM " + Db.T(Db.Order) + " o WHERE o.\"U_ProdOrd\" = w.\"DocEntry\" AND o.\"U_Status\" <> 'CANC') AS \"NbOrd\", " +
+                   "CAST(ISNULL((SELECT SUM(CASE WHEN n.\"U_LineStop\" = 'Y' THEN " + Downtime("n") + " ELSE 0 END) FROM " + Db.T(Db.Notif) + " n " +
+                   " WHERE n.\"U_ProdOrd\" = w.\"DocEntry\"), 0) AS DECIMAL(19, 2)) AS \"ArretProd\", " +
+                   "ISNULL((SELECT SUM(n.\"U_LostQty\") FROM " + Db.T(Db.Notif) + " n WHERE n.\"U_ProdOrd\" = w.\"DocEntry\"), 0) AS \"QtePerdue\", " +
+                   "ISNULL((SELECT SUM(" + Actual + ") FROM " + Db.T(Db.Order) + " o WHERE o.\"U_ProdOrd\" = w.\"DocEntry\" AND o.\"U_Status\" <> 'CANC'), 0) AS \"CoutMaint\" " +
+                   "FROM \"OWOR\" w LEFT JOIN \"OITM\" i ON i.\"ItemCode\" = w.\"ItemCode\" " +
+                   "WHERE 1 = 1" + Between("COALESCE(w.\"StartDate\", w.\"PostDate\")", f) + Eq("w.\"Status\"", f.Status) +
+                   (string.IsNullOrEmpty(f.Equip) ? "" : " AND (EXISTS (SELECT 1 FROM " + Db.T(Db.Notif) + " n WHERE n.\"U_ProdOrd\" = w.\"DocEntry\" AND n.\"U_Equip\" = " + Sql.Q(f.Equip) + ")" +
+                                                          " OR EXISTS (SELECT 1 FROM " + Db.T(Db.Order) + " o WHERE o.\"U_ProdOrd\" = w.\"DocEntry\" AND o.\"U_Equip\" = " + Sql.Q(f.Equip) + "))") +
+                   " ORDER BY COALESCE(w.\"StartDate\", w.\"PostDate\") DESC, w.\"DocNum\" DESC";
         }
 
         /// <summary>Pièces de rechange : stock total disponible face à la quantité montée et au stock mini de SAP.</summary>

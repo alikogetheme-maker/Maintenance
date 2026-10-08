@@ -57,6 +57,12 @@ namespace MaintenanceAddon.Forms
             U.Field("lNotif", "Avis", "eNotif", x3, y, lw, 80, "U_NotifNo");
             U.Editable("eNotif", false, true, false);
             RegisterUdoLink("kNotif", "eNotif", Obj.Notif);
+            U.Label("lProd", "OF", x3 + lw + 88, y, 25, "eProd");
+            // Liste de choix interdite sur un champ numérique : zone texte recopiée dans U_ProdOrd
+            F.DataSources.UserDataSources.Add("udOf", BoDataType.dt_SHORT_TEXT, 11);
+            U.Cfl("cflProd", "202");
+            Ui.BindCfl(U.EditUds("eProd", x3 + lw + 113, y, 75, "udOf"), "cflProd", "DocEntry");
+            RegisterCfl("eProd", null, "", "udOf", "DocEntry");
             y += Ui.Step + 6;
 
             U.Cfl("cflEq", Obj.Equip);
@@ -255,8 +261,32 @@ namespace MaintenanceAddon.Forms
             SetH("U_EndDt", start.Date.Add(DateTime.Now.TimeOfDay).AddHours(SettingsService.Load().HoursFor(H("U_Priority"))).Date);
         }
 
+        /// <summary>N° d'OF saisi dans la zone texte, recopié dans le champ numérique U_ProdOrd.</summary>
+        private void ProdFromScreen()
+        {
+            string text = Uds("udOf").Trim();
+            if (text == "")
+            {
+                // Vide (et non 0) : en mode Recherche, 0 deviendrait un critère
+                SetH("U_ProdOrd", "");
+                return;
+            }
+            int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int of);
+            SetH("U_ProdOrd", of);
+        }
+
+        protected override void OnValidate(string itemUid, string colUid, int row)
+        {
+            if (itemUid != "eProd")
+                return;
+            ProdFromScreen();
+            if (F.Mode != BoFormMode.fm_FIND_MODE)
+                Refresh();
+        }
+
         protected override string Validate()
         {
+            ProdFromScreen();
             if (Array.IndexOf(Closed, H("U_Status")) >= 0 && F.Mode == BoFormMode.fm_UPDATE_MODE)
                 return "L'ordre est " + OrderStatus.List.Caption(H("U_Status")).ToLowerInvariant() + " : il n'est plus modifiable.";
             if (H("U_Equip") == "" && H("U_FuncLoc") == "")
@@ -265,6 +295,8 @@ namespace MaintenanceAddon.Forms
                 return "Équipement inconnu : " + H("U_Equip");
             if (H("U_Subject") == "")
                 return "Saisissez la description courte de l'ordre.";
+            if (HDbl("U_ProdOrd") > 0 && ProductionService.Load((int)HDbl("U_ProdOrd")) == null)
+                return "Ordre de fabrication inconnu : " + H("U_ProdOrd");
             DateTime? s = HDate("U_StartDt"), e = HDate("U_EndDt");
             if (s == null || e == null)
                 return "Renseignez les dates de début et de fin prévues.";
@@ -318,7 +350,13 @@ namespace MaintenanceAddon.Forms
             SetUds("udEqNm", NotificationService.NameOf(Db.Equip, H("U_Equip")));
             SetUds("udFlNm", NotificationService.NameOf(Db.FuncLoc, H("U_FuncLoc")));
             ServiceContext ctx = Context();
-            SetUds("udCtx", ctx?.Banner() ?? "");
+            int ofEntry = (int)HDbl("U_ProdOrd");
+            SetUds("udOf", ofEntry > 0 ? ofEntry.ToString(CultureInfo.InvariantCulture) : "");
+            ProdOrderInfo of = ProductionService.Load(ofEntry);
+            string banner = ctx?.Banner() ?? "";
+            if (of != null)
+                banner += (banner == "" ? "" : "  |  ") + "Production : " + of.Label();
+            SetUds("udCtx", banner);
             int settJe = (int)HDbl("U_SettJE");
             SetUds("udSett", settJe > 0
                 ? "Ordre réglé sur le compte " + H("U_CapAcct") + " : écriture n° " + settJe + ", montant " + Sql.Amount(HDbl("U_SettAmt")) + "."
@@ -408,10 +446,19 @@ namespace MaintenanceAddon.Forms
                         SetH("U_FuncLoc", eq.FuncLoc);
                         if (H("U_WorkCtr") == "") SetH("U_WorkCtr", eq.WorkCtr);
                         if (H("U_OcrCode") == "") SetH("U_OcrCode", eq.OcrCode);
+                        if (F.Mode == BoFormMode.fm_ADD_MODE && HDbl("U_ProdOrd") == 0)
+                        {
+                            int prod = ProductionService.CurrentOrderForEquipment(eq.Code, HDate("U_StartDt") ?? DateTime.Today);
+                            if (prod > 0) SetH("U_ProdOrd", prod);
+                        }
                     }
                     break;
                 case "eTsk":
                     CopyTaskList(H("U_TaskList"));
+                    break;
+                case "eProd":
+                    ProdFromScreen();
+                    SetModeUpdate();
                     break;
                 case "mComps":
                     if (colUid == "cItem")

@@ -30,6 +30,7 @@ namespace MaintenanceAddon.Forms
         public static ShipmentForm Shipment;
         public static SerialPickerForm Serials;
         public static SparePartsForm Spares;
+        public static ProductionViewForm Production;
 
         public static void Register(UdoForm form)
         {
@@ -39,6 +40,13 @@ namespace MaintenanceAddon.Forms
         /// <summary>Ouvre l'objet (code UDO) sur la clé donnée (DocEntry ou Code).</summary>
         public static void Open(string objectCode, string key)
         {
+            // Ordre de fabrication SAP : suivi de maintenance de l'OF
+            if (objectCode == Services.ReportService.ProdObject)
+            {
+                if (int.TryParse(key, out int of))
+                    Production.Show(of);
+                return;
+            }
             if (Forms.TryGetValue(objectCode, out UdoForm form))
             {
                 form.OpenKey(key);

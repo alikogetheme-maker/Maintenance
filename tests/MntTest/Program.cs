@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
@@ -696,6 +696,190 @@ namespace MntTest
                 e = UdoData.Get(Obj.Equip, eq);
                 e.ClearDate("U_WarrEnd");
                 e.Update();
+            });
+
+            // ================= Lot 4 : lien avec la production =================
+            const string prodItem = "FCAS_CEL_1";
+            string line = "TLN" + S, zone = "TLZ" + S, mA = "TMA" + S, mB = "TMB" + S, mC = "TMC" + S;
+            int of1 = 0;
+            Func<string, int> newOf = lineCode =>
+            {
+                var po = (ProductionOrders)c.GetBusinessObject(BoObjectTypes.oProductionOrders);
+                po.ItemNo = prodItem; po.PlannedQuantity = 100; po.Warehouse = Whs;
+                po.PostingDate = DateTime.Today; po.StartDate = DateTime.Today; po.DueDate = DateTime.Today.AddDays(2);
+                if (lineCode != null) po.UserFields.Fields.Item("U_MNT_PLine").Value = lineCode;
+                DiCompany.ThrowIfError(po.Add(), "OF de test");
+                int entry = int.Parse(c.GetNewObjectKey());
+                // Composants en sortie manuelle (pas de consommation automatique à l'entrée), puis lancement
+                po = (ProductionOrders)c.GetBusinessObject(BoObjectTypes.oProductionOrders);
+                po.GetByKey(entry);
+                for (int i = 0; i < po.Lines.Count; i++) { po.Lines.SetCurrentLine(i); po.Lines.ProductionOrderIssueType = BoIssueMethod.im_Manual; }
+                po.ProductionOrderStatus = BoProductionOrderStatusEnum.boposReleased;
+                DiCompany.ThrowIfError(po.Update(), "Lancement de l'OF de test");
+                return entry;
+            };
+            Action<int> closeOf = entry =>
+            {
+                var po = (ProductionOrders)c.GetBusinessObject(BoObjectTypes.oProductionOrders);
+                if (po.GetByKey(entry) && po.ProductionOrderStatus == BoProductionOrderStatusEnum.boposReleased)
+                {
+                    po.ProductionOrderStatus = BoProductionOrderStatusEnum.boposClosed;
+                    DiCompany.ThrowIfError(po.Update(), "Clôture de l'OF de test");
+                }
+            };
+            Step("Lot 4 - ligne de production, machines, OF", () =>
+            {
+                Check(Sql.Exists("SELECT 1 FROM \"CUFD\" WHERE \"TableID\" = 'OWOR' AND \"AliasID\" = 'MNT_PLine'"), "Champ « Ligne de production » sur l'ordre de fabrication");
+                Check(Sql.Exists("SELECT 1 FROM \"CUFD\" WHERE \"TableID\" = 'OITM' AND \"AliasID\" = 'MNT_PLine'"), "Champ « Ligne par défaut » sur l'article");
+                var l = UdoData.New(Obj.FuncLoc);
+                l.Set("Code", line); l.Set("Name", "Ligne d'embouteillage test"); l.Set("U_Active", "Y"); l.Set("U_IsLine", "Y"); l.Set("U_Parent", fl); l.Set("U_Whs", Whs);
+                l.Add();
+                var z = UdoData.New(Obj.FuncLoc);
+                z.Set("Code", zone); z.Set("Name", "Zone étiquetage test"); z.Set("U_Active", "Y"); z.Set("U_IsLine", "N"); z.Set("U_Parent", line);
+                z.Add();
+                Action<string, string, string> machine = (code, name, loc) =>
+                {
+                    var e = UdoData.New(Obj.Equip);
+                    e.Set("Code", code); e.Set("Name", name); e.Set("U_FuncLoc", loc); e.Set("U_Status", "A"); e.Set("U_Critic", "A");
+                    if (code == mA)
+                    {
+                        var p = e.Lines(Db.EquipPts).Add();
+                        p.SetProperty("U_Point", "CYC"); p.SetProperty("U_Descr", "Bouteilles remplies"); p.SetProperty("U_Unit", "u");
+                        p.SetProperty("U_Counter", "Y"); p.SetProperty("U_ProdCnt", "Y");
+                    }
+                    if (code == mB)
+                    {
+                        var sp = e.Lines(Db.EquipParts).Add();
+                        sp.SetProperty("U_ItemCode", Item); sp.SetProperty("U_ItemName", "Pièce critique test"); sp.SetProperty("U_Qty", 99999999.0);
+                    }
+                    e.Add();
+                };
+                machine(mA, "Remplisseuse test", line);
+                machine(mB, "Boucheuse test", line);
+                machine(mC, "Étiqueteuse test", zone);
+                Check(ProductionService.LineOf(zone) == line && ProductionService.LineOfEquipment(mC) == line, "Machine d'un sous-poste rattachée à la ligne");
+                Check(ProductionService.LineOf(fl) == "", "Site sans ligne de production");
+                List<string> mach = ProductionService.Machines(line);
+                Check(mach.Count == 3 && mach.Contains(mC), "3 machines sur la ligne (dont la zone)");
+
+                // Les entrées de production antérieures ne sont pas comptées : point de départ
+                ProductionService.SyncCounters();
+                of1 = newOf(line);
+                ProdOrderInfo info = ProductionService.Load(of1);
+                Check(info != null && info.Line == line && info.Status == "R" && info.ItemCode == prodItem, "OF " + info?.DocNum + " lancé sur la ligne " + info?.Line);
+                Check(ProductionService.CurrentOrderForEquipment(mC, DateTime.Today) == of1, "OF en cours retrouvé depuis une machine de la ligne");
+                Check(ProductionService.CurrentOrderForEquipment(eq, DateTime.Today) == 0, "Machine hors ligne : pas d'OF");
+
+                // Ligne par défaut de l'article : OF sans ligne saisie
+                var it = (Items)c.GetBusinessObject(BoObjectTypes.oItems);
+                it.GetByKey(prodItem);
+                string oldLine = Convert.ToString(it.UserFields.Fields.Item("U_MNT_PLine").Value);
+                it.UserFields.Fields.Item("U_MNT_PLine").Value = line;
+                DiCompany.ThrowIfError(it.Update(), "Ligne par défaut de l'article");
+                int of2 = newOf(null);
+                Check(ProductionService.Load(of2).Line == line, "OF sans ligne : ligne par défaut de l'article reprise");
+                closeOf(of2);
+                it = (Items)c.GetBusinessObject(BoObjectTypes.oItems);
+                it.GetByKey(prodItem);
+                it.UserFields.Fields.Item("U_MNT_PLine").Value = oldLine;
+                DiCompany.ThrowIfError(it.Update(), "Ligne par défaut de l'article remise");
+            });
+
+            Step("Lot 4 - compteurs alimentés par la production", () =>
+            {
+                var pc = UdoData.New(Obj.Plan);
+                string pl = "TPP" + S;
+                pc.Set("Code", pl); pc.Set("Name", "Révision remplisseuse 30 bouteilles test"); pc.Set("U_Type", "C"); pc.Set("U_Equip", mA);
+                pc.Set("U_OrdType", "PM02"); pc.Set("U_Point", "CYC"); pc.Set("U_CycCount", 30.0); pc.Set("U_LeadCnt", 0.0);
+                pc.Set("U_StartCnt", 0.0); pc.Set("U_NextCnt", 30.0); pc.Set("U_Basis", "P"); pc.Set("U_Active", "Y");
+                pc.Add();
+                Check(!PlanService.Overview(DateTime.Today).First(d => d.PlanCode == pl).IsDue, "Plan compteur pas encore dû (0 bouteille)");
+
+                var rc = (Documents)c.GetBusinessObject(BoObjectTypes.oInventoryGenEntry);
+                rc.DocDate = DateTime.Today;
+                rc.Lines.BaseType = 202; rc.Lines.BaseEntry = of1; rc.Lines.Quantity = 40; rc.Lines.WarehouseCode = Whs;
+                rc.Lines.TransactionType = BoTransactionTypeEnum.botrntComplete;
+                DiCompany.ThrowIfError(rc.Add(), "Entrée de production de test");
+                int n = ProductionService.SyncCounters();
+                Check(n == 1 && Math.Abs(MeasurementService.CurrentCounter(mA, "CYC") - 40) < 0.001, "Entrée de 40 : compteur de la remplisseuse à 40 (" + n + " relevé)");
+                Check(Sql.ScalarStr("SELECT TOP 1 \"U_Remarks\" FROM \"@MNT_MDOC\" WHERE \"U_Equip\" = " + Sql.Q(mA) + " ORDER BY \"Code\" DESC").StartsWith("Production : OF"),
+                      "Relevé automatique commenté avec l'OF et l'entrée");
+                Check(ProductionService.SyncCounters() == 0 && Math.Abs(MeasurementService.CurrentCounter(mA, "CYC") - 40) < 0.001, "Deuxième synchronisation : rien compté deux fois");
+                Check(PlanService.Overview(DateTime.Today).First(d => d.PlanCode == pl).IsDue, "Plan « toutes les 30 bouteilles » devenu dû");
+                Check(Math.Abs(MeasurementService.CurrentCounter(mB, "CYC")) < 0.001, "Machine sans compteur de production : rien");
+                UdoData.Delete(Obj.Plan, pl);
+            });
+
+            int pNotif = 0, pOrder = 0;
+            Step("Lot 4 - panne pendant l'OF, arrêt de ligne, perte, suivi", () =>
+            {
+                var n = UdoData.New(Obj.Notif);
+                n.Set("U_Type", "M2"); n.Set("U_Status", "OSNO"); n.Set("U_Equip", mA); n.Set("U_FuncLoc", line); n.Set("U_Priority", "1");
+                n.Set("U_Subject", "Bourrage remplisseuse test " + S); n.Set("U_RepDate", DateTime.Today); n.Set("U_ReportBy", DiCompany.UserCode);
+                n.Set("U_Breakdwn", "Y"); n.Set("U_MalfStD", DateTime.Today); n.Set("U_MalfStT", DateTime.Today.AddHours(8));
+                n.Set("U_MalfEnD", DateTime.Today); n.Set("U_MalfEnT", DateTime.Today.AddHours(10));
+                n.Set("U_ProdOrd", of1); n.Set("U_LineStop", "Y"); n.Set("U_LostQty", 120.0);
+                pNotif = n.Add();
+                pOrder = NotificationService.CreateOrder(pNotif);
+                Check(Sql.ScalarDbl("SELECT \"U_ProdOrd\" FROM \"@MNT_OORD\" WHERE \"DocEntry\" = " + pOrder) == of1, "Ordre de maintenance rattaché à l'OF (repris de l'avis)");
+                var o = UdoData.Get(Obj.Order, pOrder);
+                var cp = o.Lines(Db.OrderComps).Add();
+                cp.SetProperty("U_ItemCode", Item); cp.SetProperty("U_ItemName", "Pièce test"); cp.SetProperty("U_Qty", 2.0); cp.SetProperty("U_Whs", Whs); cp.SetProperty("U_Proc", "S");
+                o.Update();
+                OrderService.Release(pOrder);
+                int compLine = (int)Sql.ScalarDbl("SELECT \"LineId\" FROM \"@MNT_ORD2\" WHERE \"DocEntry\" = " + pOrder);
+                OrderService.IssueComponents(pOrder, new[] { new Movement { LineId = compLine, Qty = 2 } }, DateTime.Today);
+
+                // Intervention non rattachée sur une machine de la ligne pendant l'OF
+                var d = new OrderDraft { OrdType = "PM01", Equip = mB, Subject = "Réglage boucheuse test " + S, Start = DateTime.Today };
+                d.Ops.Add(new OpDraft { OpNo = "0010", Descr = "Réglage" });
+                int other = OrderService.Create(d);
+                Check(Sql.ScalarDbl("SELECT ISNULL(\"U_ProdOrd\", 0) FROM \"@MNT_OORD\" WHERE \"DocEntry\" = " + other) == 0, "Ordre sans OF");
+
+                ProdOrderInfo info = ProductionService.Load(of1);
+                List<Row> rows = Sql.Rows(ProductionService.InterventionsSql(info));
+                Check(rows.Count == 3, "Suivi de l'OF : avis + ordre rattachés + ordre sur la ligne pendant l'OF (" + rows.Count + ")");
+                Check(rows.Any(r => r.Str("Lien").StartsWith("Sur la ligne") && r.Str("Equip") == mB), "Intervention non rattachée signalée « sur la ligne pendant l'OF »");
+                Check(Math.Abs(rows.Sum(r => r.Dbl("ArretProd")) - 2) < 0.01 && Math.Abs(rows.Sum(r => r.Dbl("QtePerdue")) - 120) < 0.001, "Arrêt de production 2 h, 120 perdues");
+                Check(ProductionService.Summary(info).Contains("arrêt de production 2,0 h"), "Synthèse : " + ProductionService.Summary(info));
+                List<Row> parts = Sql.Rows(ProductionService.PartsSql(info));
+                Check(parts.Count == 1 && parts[0].Str("Article") == Item && Math.Abs(parts[0].Dbl("Qte") - 2) < 0.001, "Pièces consommées pendant l'OF : 2 × " + Item);
+                Row rep = Sql.Rows(ReportService.View("PRD").Sql(new ReportFilter { From = DateTime.Today.AddDays(-1), To = DateTime.Today.AddDays(1) }))
+                             .FirstOrDefault(r => r.Int("Key") == of1);
+                Check(rep != null && rep.Int("NbAvis") == 1 && rep.Int("NbOrd") == 1 && Math.Abs(rep.Dbl("QtePerdue") - 120) < 0.001 && rep.Dbl("CoutMaint") > 0 &&
+                      Math.Abs(rep.Dbl("ArretProd") - 2) < 0.01 && rep.Str("Ligne") == line,
+                      "Rapport par OF : 1 avis, 1 ordre, 2 h, 120 perdues, coût " + rep?.Dbl("CoutMaint"));
+                Check(Sql.ScalarStr("SELECT CAST(\"UserText\" AS NVARCHAR(4000)) FROM \"OALR\" WHERE \"Code\" = " + AlertService.NotifyUrgent(pNotif)).Contains("LIGNE DE PRODUCTION ARRÊTÉE"),
+                      "Message urgent : OF et ligne arrêtée");
+                OrderService.Cancel(other);
+            });
+
+            Step("Lot 4 - points à vérifier avant de lancer un OF", () =>
+            {
+                List<string> w = ProductionService.ReleaseWarnings(line);
+                Check(w.Any(x => x.StartsWith(mB) && x.Contains("insuffisante")), "Pièce critique insuffisante signalée");
+                Check(!w.Any(x => x.Contains("panne en cours")), "Panne terminée : pas signalée");
+                var e = UdoData.Get(Obj.Equip, mC);
+                e.Set("U_Status", "I");
+                e.Update();
+                var n = UdoData.New(Obj.Notif);
+                n.Set("U_Type", "M2"); n.Set("U_Status", "OSNO"); n.Set("U_Equip", mA); n.Set("U_Priority", "2"); n.Set("U_Subject", "Fuite remplisseuse test");
+                n.Set("U_Breakdwn", "Y"); n.Set("U_MalfStD", DateTime.Today);
+                int open = n.Add();
+                w = ProductionService.ReleaseWarnings(line);
+                Check(w.Any(x => x.StartsWith(mC) && x.Contains("hors service")), "Machine hors service signalée");
+                Check(w.Any(x => x.StartsWith(mA) && x.Contains("panne en cours")), "Panne en cours signalée");
+                Check(ProductionService.ReleaseWarnings("ZZ" + S).Count == 0, "Poste sans machine : rien à signaler");
+                Check(Sql.Rows(ProductionService.CriticalPartsSql(line)).First().Str("Alerte") == "Stock < quantité montée", "Pièces de la ligne : manque en tête");
+                NotificationService.Complete(open, DateTime.Today);
+                e = UdoData.Get(Obj.Equip, mC);
+                e.Set("U_Status", "A");
+                e.Update();
+                OrderService.TechnicallyComplete(pOrder, DateTime.Today);
+                closeOf(of1);
+                Check(ProductionService.Load(of1).Status == "L" && ProductionService.CurrentOrderForEquipment(mA, DateTime.Today) == 0, "OF clôturé : plus d'OF en cours sur la ligne");
+                List<Row> after = Sql.Rows(ProductionService.InterventionsSql(ProductionService.Load(of1)));
+                Check(after.Any(r => r.Str("Nature") == "Avis" && r.Int("Key") == pNotif) && after.Any(r => r.Str("Nature") == "Ordre" && r.Int("Key") == pOrder), "Suivi d'un OF clôturé toujours consultable (" + after.Count + " ligne(s))");
             });
 
             Step("Rapports (exécution de toutes les requêtes)", () =>

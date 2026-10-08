@@ -43,5 +43,7 @@ namespace MaintenanceAddon.Forms
         public const string ShipForm = "MNT_FSHP";
         public const string SerialForm = "MNT_FSER";
         public const string SparePartsForm = "MNT_FSPR";
+        public const string ProductionForm = "MNT_FPRD";
+        public const string MenuProd = "MNTM_PRD";
     }
 }

@@ -214,7 +214,7 @@ namespace MntUiTest
 
         private static void CloseAll()
         {
-            foreach (string uid in new[] { FormIds.SerialForm, FormIds.SparePartsForm, FormIds.ConfForm, FormIds.GoodsForm, FormIds.ShipForm, FormIds.MeasureForm, FormIds.OrderForm, FormIds.NotifForm,
+            foreach (string uid in new[] { FormIds.ProductionForm, FormIds.SerialForm, FormIds.SparePartsForm, FormIds.ConfForm, FormIds.GoodsForm, FormIds.ShipForm, FormIds.MeasureForm, FormIds.OrderForm, FormIds.NotifForm,
                                            FormIds.EquipForm, FormIds.FuncLocForm, FormIds.TaskListForm, FormIds.PlanForm, FormIds.ContractForm,
                                            FormIds.SchedForm, FormIds.ListForm, FormIds.SetupForm })
                 CloseForm(uid);
@@ -306,6 +306,7 @@ namespace MntUiTest
                 new KeyValuePair<string, string>(FormIds.MenuTaskList, FormIds.TaskListForm),
                 new KeyValuePair<string, string>(FormIds.MenuContract, FormIds.ContractForm),
                 new KeyValuePair<string, string>(FormIds.MenuShip, FormIds.ShipForm),
+                new KeyValuePair<string, string>(FormIds.MenuProd, FormIds.ProductionForm),
                 new KeyValuePair<string, string>(FormIds.MenuNotif, FormIds.NotifForm),
                 new KeyValuePair<string, string>(FormIds.MenuOrder, FormIds.OrderForm),
                 new KeyValuePair<string, string>(FormIds.MenuMeasure, FormIds.MeasureForm),
@@ -737,6 +738,124 @@ namespace MntUiTest
                 CloseForm(FormIds.NotifForm);
             });
 
+            // ---- Lot 4 : production ------------------------------------------------
+            string pLine = "UIL" + S, pMach = "UIM" + S;
+            int pOf = 0, pOf2 = 0;
+            Func<bool, int> newOf = release =>
+            {
+                var po = (DI.ProductionOrders)DiCompany.Instance.GetBusinessObject(DI.BoObjectTypes.oProductionOrders);
+                po.ItemNo = "FCAS_CEL_1"; po.PlannedQuantity = 50; po.Warehouse = "ABJ";
+                po.PostingDate = DateTime.Today; po.StartDate = DateTime.Today; po.DueDate = DateTime.Today.AddDays(1);
+                po.UserFields.Fields.Item("U_MNT_PLine").Value = pLine;
+                DiCompany.ThrowIfError(po.Add(), "OF de test");
+                int entry = int.Parse(DiCompany.Instance.GetNewObjectKey());
+                po = (DI.ProductionOrders)DiCompany.Instance.GetBusinessObject(DI.BoObjectTypes.oProductionOrders);
+                po.GetByKey(entry);
+                for (int i = 0; i < po.Lines.Count; i++) { po.Lines.SetCurrentLine(i); po.Lines.ProductionOrderIssueType = DI.BoIssueMethod.im_Manual; }
+                if (release) po.ProductionOrderStatus = DI.BoProductionOrderStatusEnum.boposReleased;
+                DiCompany.ThrowIfError(po.Update(), "OF de test");
+                return entry;
+            };
+            Step("Production : bouton Maintenance sur l'ordre de fabrication SAP", () =>
+            {
+                var l = UdoData.New(Obj.FuncLoc);
+                l.Set("Code", pLine); l.Set("Name", "Ligne UI " + S); l.Set("U_Active", "Y"); l.Set("U_IsLine", "Y");
+                l.Add();
+                var e = UdoData.New(Obj.Equip);
+                e.Set("Code", pMach); e.Set("Name", "Remplisseuse UI " + S); e.Set("U_FuncLoc", pLine); e.Set("U_Status", "A");
+                e.Add();
+                pOf = newOf(true);
+                _app.OpenForm(UI.BoFormObjectEnum.fo_ProductionOrder, "", pOf.ToString(CultureInfo.InvariantCulture));
+                Pump(800);
+                UI.Form f = _app.Forms.ActiveForm;
+                Check(f.TypeEx == ProductionOrderHook.SapFormType, "Écran SAP « Ordre de fabrication » ouvert");
+                bool has = true;
+                try { f.Items.Item("MNTbPrd"); } catch { has = false; }
+                Check(has, "Bouton « Maintenance » ajouté à l'écran SAP");
+                if (has)
+                {
+                    UI.Item b = f.Items.Item("MNTbPrd"), c = f.Items.Item("2");
+                    Console.WriteLine("      bouton Maintenance : gauche " + b.Left + ", haut " + b.Top + " (Annuler : " + c.Left + "-" + (c.Left + c.Width) + ", largeur écran " + f.Width + ")");
+                    Click(f, "MNTbPrd");
+                }
+                Check(IsOpen(FormIds.ProductionForm), "Suivi de maintenance de l'OF ouvert");
+                UI.Form v = Form(FormIds.ProductionForm);
+                Check(Uds(v, "udHead").Contains("OF n° ") && Uds(v, "udHead").Contains(pLine), "En-tête : " + Uds(v, "udHead"));
+                Check(Uds(v, "udSum").StartsWith("0 avis"), "Synthèse : " + Uds(v, "udSum"));
+                f.Close();
+                Pump();
+            });
+
+            Step("Production : panne déclarée depuis le suivi de l'OF", () =>
+            {
+                UI.Form v = Form(FormIds.ProductionForm);
+                Click(v, "bNotif");
+                Check(IsOpen(FormIds.NotifForm), "Avis ouvert");
+                UI.Form n = Form(FormIds.NotifForm);
+                Check(Get(n, "eProd") == pOf.ToString(CultureInfo.InvariantCulture) && Get(n, "eFl") == pLine, "Avis prérempli : OF et ligne");
+                Set(n, "eEq", pMach);
+                Check(Get(n, "eProd") == pOf.ToString(CultureInfo.InvariantCulture), "OF conservé après le choix de la machine");
+                Set(n, "eSubj", "Bourrage UI " + S);
+                Click(n, "fProd");
+                ((UI.CheckBox)n.Items.Item("cLStop").Specific).Checked = true;
+                Set(n, "eLost", "80");
+                Click(n, "fBrk");
+                ((UI.CheckBox)n.Items.Item("cBrk").Specific).Checked = true;
+                Set(n, "eMStD", DateTime.Today.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
+                Click(n, "1");
+                Pump(800);
+                Row r = Sql.First("SELECT * FROM " + Db.T(Db.Notif) + " WHERE \"U_Subject\" = " + Sql.Q("Bourrage UI " + S));
+                Check(r != null && r.Int("U_ProdOrd") == pOf && r.Str("U_LineStop") == "Y" && r.Dbl("U_LostQty") == 80, "Avis enregistré : OF, ligne arrêtée, 80 perdues");
+                if (r != null) NotificationService.Complete(r.Int("DocEntry"), DateTime.Today);
+
+                NewRecord(n);
+                Set(n, "eEq", pMach);
+                Check(Get(n, "eProd") == pOf.ToString(CultureInfo.InvariantCulture), "Nouvel avis sur la machine : OF en cours proposé automatiquement");
+                CloseForm(FormIds.NotifForm);
+                Click(v, "bRefresh");
+                Check(Uds(v, "udSum").StartsWith("1 avis") && Uds(v, "udSum").Contains("quantité perdue 80"), "Suivi actualisé : " + Uds(v, "udSum"));
+                Check(((UI.Grid)v.Items.Item("gInt").Specific).Rows.Count == 1, "Intervention listée");
+                CloseForm(FormIds.ProductionForm);
+            }, errorsExpected: true);
+
+            Step("Production : avertissement au lancement d'un OF", () =>
+            {
+                var e = UdoData.Get(Obj.Equip, pMach);
+                e.Set("U_Status", "I");
+                e.Update();
+                pOf2 = newOf(false);
+                _app.OpenForm(UI.BoFormObjectEnum.fo_ProductionOrder, "", pOf2.ToString(CultureInfo.InvariantCulture));
+                Pump(800);
+                UI.Form f = _app.Forms.ActiveForm;
+                // Combo du statut : celui qui affiche « P » (planifié)
+                UI.ComboBox status = null;
+                for (int i = 0; i < f.Items.Count && status == null; i++)
+                {
+                    UI.Item it = f.Items.Item(i);
+                    if (it.Type != UI.BoFormItemTypes.it_COMBO_BOX) continue;
+                    var cb = (UI.ComboBox)it.Specific;
+                    if (cb.Selected != null && cb.Selected.Value == "P") status = cb;
+                }
+                Check(status != null, "Statut de l'OF trouvé");
+                if (status == null) { f.Close(); return; }
+                MaintenanceAddon.Program.MessageHook = text => { Messages.Add(text); return text.Contains("Avant de lancer") ? 2 : 1; };
+                status.Select("R", UI.BoSearchKey.psk_ByValue);
+                Pump(200);
+                Click(f, "1");
+                Pump(600);
+                Check(Messages.Any(m => m.Contains("Avant de lancer") && m.Contains(pMach) && m.Contains("hors service")), "Avertissement : machine hors service");
+                Check(Sql.ScalarStr("SELECT \"Status\" FROM \"OWOR\" WHERE \"DocEntry\" = " + pOf2) == "P", "Réponse Non : OF resté planifié");
+                MaintenanceAddon.Program.MessageHook = text => { Messages.Add(text); return 1; };
+                Click(f, "1");
+                Pump(800);
+                Check(Sql.ScalarStr("SELECT \"Status\" FROM \"OWOR\" WHERE \"DocEntry\" = " + pOf2) == "R", "Réponse Oui : OF lancé");
+                try { if (f.Mode != UI.BoFormMode.fm_OK_MODE) f.Mode = UI.BoFormMode.fm_OK_MODE; f.Close(); } catch { }
+                Pump();
+                e = UdoData.Get(Obj.Equip, pMach);
+                e.Set("U_Status", "A");
+                e.Update();
+            }, errorsExpected: true);
+
             // ---- Paramètres et rapports -----------------------------------------
             Step("Paramètres : enregistrement, alertes", () =>
             {
@@ -779,6 +898,15 @@ namespace MntUiTest
             if (Sql.Exists("SELECT 1 FROM " + Db.T(Db.TaskList) + " WHERE \"Code\" = " + Sql.Q(tsk)))
                 UdoData.Delete(Obj.TaskList, tsk);
             Check(Orders.All(o => OrderService.Status(o) == OrderStatus.Closed || OrderService.Status(o) == OrderStatus.Cancelled), "Ordres de test clôturés ou annulés");
+            // OF de test clôturés
+            foreach (Row r in Sql.Rows("SELECT \"DocEntry\" FROM \"OWOR\" WHERE \"Status\" IN ('P', 'R') AND \"U_MNT_PLine\" = " + Sql.Q("UIL" + S)))
+            {
+                var po = (DI.ProductionOrders)DiCompany.Instance.GetBusinessObject(DI.BoObjectTypes.oProductionOrders);
+                po.GetByKey(r.Int("DocEntry"));
+                po.ProductionOrderStatus = po.ProductionOrderStatus == DI.BoProductionOrderStatusEnum.boposPlanned
+                    ? DI.BoProductionOrderStatusEnum.boposCancelled : DI.BoProductionOrderStatusEnum.boposClosed;
+                DiCompany.ThrowIfError(po.Update(), "Clôture de l'OF de test");
+            }
             // Fichiers de test retirés du dossier partagé des pièces jointes de SAP
             foreach (string f in ShareFiles)
                 try { File.Delete(f); } catch { }

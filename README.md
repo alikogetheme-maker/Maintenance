@@ -25,7 +25,8 @@ les objets et le cycle de vie du module **Maintenance (PM / EAM) de SAP S/4HANA*
 | Contrat de maintenance / garantie | BP_WAR, contrats de service | Données de base → Contrats de maintenance ; garantie sur la fiche équipement |
 | Réparation externe (envoi / retour) | Sous-traitance, IW8W | Envoi / retour chez un prestataire |
 | Règlement de l'ordre sur immobilisation | KO88 | Ordre « À immobiliser » → écriture de règlement à la clôture |
-| Listes, analyses | IW39, IW29, IH01, MCI* | Rapports (14 vues) |
+| Listes, analyses | IW39, IW29, IH01, MCI* | Rapports (15 vues) |
+| Lien PP / PM (ordre de fabrication, arrêts de ligne, compteurs de production) | CO03, IK11 auto | Maintenance de la production (par OF) ; bouton Maintenance sur l'OF SAP |
 
 ## 1. Compiler et lancer
 
@@ -146,6 +147,32 @@ Les autres utilisateurs connectés doivent ensuite se reconnecter.
 - Relevé de compteur : jamais en baisse, saisie chronologique.
 - Mesure hors limites (basse / haute du point) : proposition d'avis automatique.
 
+### Lien avec la production SAP (ordres de fabrication)
+Les ressources SAP n'étant pas utilisées, le lien OF ↔ machines passe par la **ligne de production** :
+- **Ligne** = poste technique coché *Ligne de production* ; ses **machines** = équipements installés
+  sur la ligne ou ses sous-postes.
+- **Ligne d'un OF** = champ utilisateur `U_MNT_PLine` de l'OF (*Ligne de production (maint.)*), sinon
+  la ligne par défaut de l'article produit (`OITM.U_MNT_PLine`). Le code saisi sur l'OF est contrôlé à
+  l'enregistrement (SAP refuse le lien de champ vers l'objet poste technique, erreur -5002).
+- **Écran SAP « Ordre de fabrication »** (type 65211, aiguillé par `EventHub.RegisterFormType`) :
+  bouton **Maintenance** (suivi de l'OF) ; au passage au statut *Lancé*, liste des points à vérifier
+  sur la ligne (machine hors service ou chez un prestataire, panne en cours, préventif en retard, pièce
+  de rechange insuffisante) et confirmation.
+- **Avis** : onglet *Production* : OF (proposé automatiquement : OF lancé le plus récent de la ligne de
+  la machine), *ligne de production arrêtée*, *quantité perdue*. Repris sur l'ordre de maintenance.
+- **Suivi de l'OF** (*Maintenance → Maintenance de la production*, ou bouton de l'OF, ou double-clic dans
+  le rapport) : synthèse (avis, ordres, arrêt de production = durée des pannes « ligne arrêtée »,
+  quantité perdue, coût réel des ordres), points à vérifier, interventions **rattachées à l'OF** ou
+  **sur une machine de la ligne pendant l'OF** (début → clôture de l'OF), pièces consommées par ces
+  interventions, pièces de rechange des machines de la ligne avec leur stock.
+- **Rapport** *Maintenance par ordre de fabrication* (interventions rattachées).
+- **Compteurs alimentés par la production** : un point de mesure compteur coché *Par la production*
+  reçoit la quantité de chaque entrée de production (produit de l'OF, tous types d'entrée) de sa ligne :
+  plans préventifs « toutes les N unités » sans saisie. Synchronisation au démarrage de l'add-on, à
+  l'ordonnancement et à l'envoi des alertes ; repère `@MNT_SETUP.U_ProdSync` (la première fois : à
+  partir des entrées suivantes) et clé de ligne `U_SrcDoc` sur le relevé (pas de double comptage). Une
+  annulation d'entrée ne fait pas baisser le compteur.
+
 ### Intégration aux données SAP
 La fiche équipement reste l'objet central de la maintenance (comme IE01 dans S/4HANA),
 qu'un module Immobilisations soit utilisé ou non ; elle **se rattache** aux données SAP :
@@ -225,6 +252,8 @@ src/MaintenanceAddon/
   Services/AlertService.cs    Alertes par la messagerie interne SAP
   Services/AuthService.cs     Autorisations (arbre des autorisations SAP)
   Services/WorkOrderPrint.cs  Bon de travail imprimable (HTML)
+  Services/ProductionService.cs    Lignes, OF, suivi par OF, points à vérifier, compteurs de production
+  Forms/ProductionViewForm.cs Suivi de l'OF + bouton et contrôle sur l'écran SAP de l'OF
   Forms/*.cs                  Écrans
 ```
 
@@ -258,7 +287,12 @@ doublons, pièces de rechange et leur rapport, consignes de sécurité et bon de
 documents joints (fichiers de test retirés du dossier partagé à la fin), autorisations,
 alertes (messages dans la messagerie de l'utilisateur de test).
 
-Dernier passage (07/10/2026) : **212 OK, 0 KO**.
+Production : ligne de test (3 machines dont une dans une zone de la ligne), OF de test sur l'article
+`FCAS_CEL_1` (composants passés en sortie manuelle, puis OF clôturés), ligne par défaut de l'article
+(remise à sa valeur d'origine), entrée de production → compteur → plan dû, avis « ligne arrêtée »,
+ordre rattaché, pièces, rapport par OF, points à vérifier avant lancement.
+
+Dernier passage (08/10/2026) : **245 OK, 0 KO**.
 
 ### Banc des écrans (client SAP ouvert)
 

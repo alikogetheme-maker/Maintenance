@@ -123,6 +123,7 @@ namespace MaintenanceAddon.Services
                 Equip = n.Str("U_Equip"),
                 FuncLoc = n.Str("U_FuncLoc") != "" ? n.Str("U_FuncLoc") : eq?.FuncLoc ?? "",
                 NotifNo = notifEntry,
+                ProdOrd = (int)n.Dbl("U_ProdOrd"),
                 Priority = n.Str("U_Priority"),
                 Subject = n.Str("U_Subject"),
                 Descr = n.Str("U_Descr"),
@@ -260,6 +261,9 @@ namespace MaintenanceAddon.Services
             ServiceContext ctx = ServiceContext.For(equip, DateTime.Today);
             n.Set("U_UnderWar", ctx != null && ctx.UnderWarranty ? "Y" : "N");
             n.Set("U_Contract", ctx?.Contract?.Code ?? "");
+            int prod = ProductionService.CurrentOrderForEquipment(equip, DateTime.Today);
+            if (prod > 0)
+                n.Set("U_ProdOrd", prod);
             return n.Add();
         }
 

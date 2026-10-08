@@ -284,6 +284,13 @@ html { scroll-behavior: smooth; }
     <li><a href="#f-alertes">24. Lire les alertes</a></li>
     <li><a href="#f-rapports">25. Consulter les rapports</a></li>
   </ol>
+  <p class="grp">Production</p>
+  <ol>
+    <li><a href="#f-ligne">26. Décrire une ligne</a></li>
+    <li><a href="#f-lancer-of">27. Lancer un OF</a></li>
+    <li><a href="#f-panne-of">28. Panne pendant un OF</a></li>
+    <li><a href="#f-suivi-of">29. Suivre un OF</a></li>
+  </ol>
   <p class="grp">Aide</p>
   <ol>
     <li><a href="#decider">Bien choisir</a></li>
@@ -338,6 +345,8 @@ html { scroll-behavior: smooth; }
   <tr id="g-equip"><td><strong>Équipement</strong></td><td>Un appareil précis, avec son code, que l'on entretient.</td><td>Le climatiseur CLIM-0012 du bureau 3</td></tr>
   <tr id="g-serie"><td><strong>N° de série</strong></td><td>Le numéro unique d'un appareil, donné par le fabricant. SAP l'enregistre à la réception d'achat.</td><td>J4K215663</td></tr>
   <tr id="g-poste"><td><strong>Poste technique</strong> (site)</td><td>Un lieu où sont installés des équipements : site, agence, bâtiment, étage. Les lieux s'emboîtent.</td><td>Agence Yopougon → bureaux</td></tr>
+  <tr id="g-ligne"><td><strong>Ligne de production</strong></td><td>Un poste technique qui regroupe les machines d'une fabrication. Quand une machine s'arrête, souvent toute la ligne s'arrête.</td><td>Ligne d'embouteillage 1 : souffleuse, remplisseuse, étiqueteuse</td></tr>
+  <tr id="g-of"><td><strong>Ordre de fabrication</strong> (OF)</td><td>Le document SAP de la production : quel produit, quelle quantité, quand. Planifié, puis lancé, puis clôturé.</td><td>OF 5783 : 10 000 packs de CELESTE 1 L</td></tr>
   <tr id="g-avis"><td><strong>Avis</strong></td><td>Le signalement d'un problème ou d'un besoin.</td><td>« Le climatiseur du bureau 3 ne refroidit plus »</td></tr>
   <tr id="g-ordre"><td><strong>Ordre</strong></td><td>Le dossier du travail à faire : tâches, pièces, prestataire, coûts.</td><td>Ordre 245 : remplacer le filtre</td></tr>
   <tr id="g-op"><td><strong>Opération</strong></td><td>Une tâche de l'ordre, numérotée 0010, 0020… Interne (vos techniciens) ou externe (un prestataire).</td><td>0010 Nettoyage des filtres</td></tr>
@@ -415,6 +424,9 @@ html { scroll-behavior: smooth; }
   <tr><td><strong>Tout utilisateur</strong> qui constate une panne</td><td><a href="#f-avis">9</a></td></tr>
   <tr><td><strong>Acheteur</strong></td><td><a href="#f-presta">14</a>, <a href="#f-contrat">22</a></td></tr>
   <tr><td><strong>Comptable</strong></td><td><a href="#f-immo">23</a>, <a href="#compta">Ce qui est comptabilisé</a></td></tr>
+  <tr><td><strong>Responsable maintenance</strong>, usine</td><td><a href="#f-ligne">26</a> une fois, puis <a href="#f-suivi-of">29</a></td></tr>
+  <tr><td><strong>Chef de production, planificateur</strong></td><td><a href="#f-lancer-of">27</a>, <a href="#f-panne-of">28</a>, <a href="#f-suivi-of">29</a></td></tr>
+  <tr><td><strong>Conducteur de ligne</strong></td><td><a href="#f-panne-of">28</a></td></tr>
 </table></div>
 <div class="note tip">
   <strong>Une panne, du début à la fin</strong>
@@ -1079,9 +1091,53 @@ html { scroll-behavior: smooth; }
   <tr><td>Quels appareils sont chez un prestataire ?</td><td>Équipements envoyés chez les prestataires</td></tr>
   <tr><td>Qui a travaillé combien d'heures ? Quelles pièces ont été utilisées ?</td><td>Confirmations de temps ; Consommations de pièces</td></tr>
   <tr><td>Où sont installés les appareils ?</td><td>Structure technique</td></tr>
+  <tr><td>Combien la maintenance a-t-elle coûté ou fait perdre à chaque production ?</td><td>Maintenance par ordre de fabrication</td></tr>
   <tr><td>Les relevés et les entretiens passés ?</td><td>Historique des relevés ; Historique des appels de plans</td></tr>
 </table></div>
 <p><strong>Disponibilité</strong> = part du temps sans arrêt. <strong>MTTR</strong> = arrêt ÷ nombre de pannes. <strong>MTBF</strong> = temps sans arrêt ÷ nombre de pannes. Ces calculs n'ont de sens que si les débuts et fins de panne sont saisis.</p>
+
+<!-- ============================================================ -->
+<div class="part"><p class="k">Production</p>
+<h2 id="f-ligne">Fiche 26 · Décrire une ligne de production et ses machines</h2></div>
+<p class="who"><span>Pour : responsable maintenance</span><span>Une fois par ligne</span><span>15 minutes</span></p>
+<p>La maintenance doit savoir quelles machines travaillent pour chaque ordre de fabrication. Comme SAP ne le dit pas, on décrit la ligne une fois ; ensuite tout est automatique.</p>
+<div class="tuto">
+  <section><h4>Créer la ligne</h4><p><span class="path">Maintenance → Données de base → Postes techniques</span> : code (ex. <code>LIGNE-EMB1</code>), désignation « Ligne d'embouteillage 1 », poste supérieur (l'usine), puis cochez <strong>Ligne de production</strong>. <strong>Créer</strong>.</p><p class="res"><b>Vous devez voir</b> : la ligne dans la liste des postes techniques. Des zones peuvent être créées dessous (poste supérieur = la ligne).</p></section>
+  <section><h4>Y installer les machines</h4><p>Pour chaque machine (souffleuse, remplisseuse, étiqueteuse…), créez ou ouvrez sa fiche équipement et mettez la ligne (ou une de ses zones) dans <strong>Poste technique</strong> (<a href="#f-equip-main">fiche 6</a>).</p><p class="res"><b>Vous devez voir</b> : les machines dans le contenu de la ligne, en bas de sa fiche.</p></section>
+  <section><h4>Dire quelle ligne fabrique quel produit</h4><p>Dans la fiche article SAP du produit fini, champ utilisateur <strong>Ligne de production par défaut</strong> : le code de la ligne. Un OF reprend cette ligne. Pour une fabrication exceptionnelle sur une autre ligne, remplissez le champ <strong>Ligne de production (maint.)</strong> de l'OF.</p><p class="res"><b>Vous devez voir</b> : en ouvrant le suivi d'un OF (<a href="#f-suivi-of">fiche 29</a>), le nom de la ligne. Un code qui n'est pas une ligne est refusé à l'enregistrement de l'OF.</p></section>
+  <section><h4>Compter la production sur les machines (facultatif)</h4><p>Sur la fiche d'une machine, onglet <strong>Points de mesure</strong> : une ligne « Bouteilles », unité <code>u</code>, cochez <strong>Compteur</strong> et <strong>Par la production</strong>. <strong>Mettre à jour</strong>.</p><p class="res"><b>Vous devez voir</b> : à chaque entrée de production d'un OF de la ligne, la quantité s'ajoute au compteur (visible dans <span class="path">Relevés de compteurs et mesures</span>, commentaire « Production : OF n° … »). Un plan « toutes les 50 000 bouteilles » (<a href="#f-plan">fiche 18</a>) se déclenche alors tout seul.</p></section>
+</div>
+<div class="note tip"><strong>Quand le compteur est-il mis à jour ?</strong><p>Au démarrage de l'add-on, à chaque ouverture ou actualisation de l'ordonnancement des plans, et à l'envoi des alertes. Les entrées faites avant la mise en service de cette fonction ne sont pas comptées : saisissez un premier relevé à la main.</p></div>
+
+<h2 id="f-lancer-of">Fiche 27 · Lancer un ordre de fabrication en vérifiant les machines</h2>
+<p class="who"><span>Pour : planificateur, chef de production</span><span>À chaque lancement d'OF</span></p>
+<div class="tuto">
+  <section><h4>Lancer l'OF comme d'habitude</h4><p>Dans l'ordre de fabrication SAP, passez le statut à <strong>Lancé</strong>, puis <strong>Mettre à jour</strong>.</p></section>
+  <section><h4>Lire les points à vérifier</h4><p class="res"><b>Vous devez voir</b> : si quelque chose cloche sur une machine de la ligne, un message « Avant de lancer la production sur la ligne… » liste : machine hors service ou chez un prestataire, panne en cours, entretien préventif en retard, pièce de rechange insuffisante en stock. Sans problème, aucun message.</p></section>
+  <section><h4>Décider</h4><p><strong>Oui</strong> lance l'OF quand même ; <strong>Non</strong> le laisse planifié, le temps de régler le problème avec la maintenance.</p></section>
+</div>
+
+<h2 id="f-panne-of">Fiche 28 · Déclarer une panne pendant une production</h2>
+<p class="who"><span>Pour : conducteur de ligne, technicien</span><span>2 minutes</span></p>
+<div class="tuto">
+  <section><h4>Créer l'avis</h4><p>Depuis l'OF SAP : bouton <strong>Maintenance</strong>, puis <strong>Déclarer une panne</strong>. Ou comme d'habitude depuis la fiche de la machine (<a href="#f-avis">fiche 9</a>).</p><p class="res"><b>Vous devez voir</b> : l'onglet <strong>Production</strong> de l'avis rempli avec l'OF en cours sur la ligne (n°, produit, ligne). Le message en bas le rappelle.</p></section>
+  <section><h4>Choisir la machine et décrire</h4><p><strong>Équipement</strong> : la machine en panne. Description courte, priorité, comme pour toute panne.</p></section>
+  <section><h4>L'arrêt</h4><p>Onglet <strong>Panne / arrêt</strong> : cochez <em>Arrêt de l'équipement</em>, début de panne.</p></section>
+  <section><h4>L'impact sur la production</h4><p>Onglet <strong>Production</strong> : cochez <strong>Ligne de production arrêtée</strong> si toute la ligne s'est arrêtée ; saisissez la <strong>quantité perdue</strong> (produits jetés ou non fabriqués).</p></section>
+  <section><h4>Enregistrer</h4><p>Cliquez sur <strong>Créer</strong>.</p><p class="res"><b>Vous devez voir</b> : l'avis créé. L'ordre de maintenance créé ensuite reprend l'OF. Une ligne arrêtée prévient aussi les responsables par message.</p></section>
+  <section><h4>À la fin de la panne</h4><p>Saisissez la fin de panne (<a href="#f-fin">fiche 16</a>) : sa durée devient le temps d'arrêt de production de l'OF.</p></section>
+</div>
+
+<h2 id="f-suivi-of">Fiche 29 · Suivre la maintenance d'un ordre de fabrication</h2>
+<p class="who"><span>Pour : chef de production, responsable maintenance</span><span>Pendant et après la production</span></p>
+<div class="tuto">
+  <section><h4>Ouvrir le suivi</h4><p>Dans l'OF SAP, bouton <strong>Maintenance</strong>. Ou <span class="path">Maintenance → Maintenance de la production (par OF)</span>, choisissez l'OF (<kbd>Tab</kbd>), puis <strong>Afficher</strong>.</p></section>
+  <section><h4>Lire la synthèse</h4><p class="res"><b>Vous devez voir</b> : le produit, la ligne, les quantités, puis « N avis, N ordres | arrêt de production … h | quantité perdue … | coût de maintenance … ».</p></section>
+  <section><h4>Les points à vérifier</h4><p>Le cadre liste l'état des machines de la ligne : hors service, en panne, préventif en retard, pièces manquantes.</p></section>
+  <section><h4>Les interventions</h4><p>La liste montre les avis et ordres <strong>rattachés à l'OF</strong>, et aussi ceux faits <strong>sur une machine de la ligne pendant l'OF</strong> sans y avoir été rattachés. Double-cliquez pour ouvrir.</p></section>
+  <section><h4>Les pièces</h4><p>À gauche, les pièces consommées par ces interventions ; à droite, les pièces de rechange des machines de la ligne avec leur stock (les manquantes en tête).</p></section>
+</div>
+<p>Pour comparer les OF entre eux : <span class="path">Maintenance → Rapports → Maintenance par ordre de fabrication</span> (avis, ordres, arrêt, pertes et coût de maintenance de chaque OF ; double-clic pour ouvrir son suivi).</p>
 
 <!-- ============================================================ -->
 <div class="part"><p class="k">Aide</p>
@@ -1150,6 +1206,9 @@ html { scroll-behavior: smooth; }
   <tr><td>« L'équipement … est déjà couvert par le contrat actif … »</td><td>Retirez-le de l'autre contrat ou ajustez les dates.</td></tr>
   <tr><td>« … est un compte collectif (écritures manuelles interdites). »</td><td>Choisissez un compte de détail.</td></tr>
   <tr><td>« Destinataire des alertes : utilisateur SAP inconnu … »</td><td>Saisissez des codes d'utilisateurs SAP existants, séparés par des virgules.</td></tr>
+  <tr><td>« Ligne de production (maint.) : « … » n'est pas une ligne de production… »</td><td>Sur l'OF, saisissez le code d'un poste technique coché « Ligne de production » (<a href="#f-ligne">fiche 26</a>), ou videz le champ.</td></tr>
+  <tr><td>« Ligne arrêtée : cochez aussi « Arrêt de l'équipement »… »</td><td>Onglet Panne / arrêt : cochez l'arrêt et saisissez le début de panne.</td></tr>
+  <tr><td>« Avant de lancer la production sur la ligne … »</td><td>Pas une erreur : lisez la liste, puis Oui pour lancer quand même ou Non pour attendre (<a href="#f-lancer-of">fiche 27</a>).</td></tr>
   <tr><td>« Le plan … a déjà un ordre en cours… »</td><td>Réalisez et clôturez techniquement l'ordre en cours d'abord.</td></tr>
 </table></div>
 <p>En cas d'erreur inattendue, le détail est enregistré dans <code>%TEMP%\MaintenanceAddon.log</code> sur le poste : transmettez ce fichier à l'administrateur.</p>

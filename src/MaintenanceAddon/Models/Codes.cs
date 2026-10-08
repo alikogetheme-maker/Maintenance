@@ -229,6 +229,20 @@ namespace MaintenanceAddon.Models
             Activity, "Activité");
     }
 
+    /// <summary>Statut de l'ordre de fabrication SAP (OWOR.Status).</summary>
+    internal static class ProdStatus
+    {
+        public const string Planned = "P";
+        public const string Released = "R";
+        public const string Closed = "L";
+        public const string Cancelled = "C";
+        public static readonly CodeList List = new CodeList(
+            Planned, "Planifié",
+            Released, "Lancé",
+            Closed, "Clôturé",
+            Cancelled, "Annulé");
+    }
+
     internal static class WorkCenterTypes
     {
         public static readonly CodeList List = new CodeList(

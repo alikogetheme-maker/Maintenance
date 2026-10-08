@@ -26,6 +26,7 @@ namespace MaintenanceAddon.Setup
             CreateTables();
             CreateDocumentFields();
             RegisterObjects();
+            CreateProductionFields();
             CreatePermissions();
             EnsureSetupRow();
             SeedData();
@@ -57,6 +58,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "AlertUsr", "Destinataires des alertes", 'A', 254);
             Fld(t, "AlertDays", "Horizon des alertes (j)", 'N', 4);
             Fld(t, "AlertDt", "Dernier envoi des alertes", 'D');
+            Fld(t, "ProdSync", "Dernière entrée prod. comptée", 'N', 11);
 
             // ---- Postes techniques (IL01) -----------------------------------
             Table(Db.FuncLoc, "Maint. - Postes techniques", BoUTBTableType.bott_MasterData);
@@ -67,6 +69,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "Whs", "Magasin", 'A', 8);
             Fld(t, "Active", "Actif (Y/N)", 'A', 1);
             Fld(t, "Remarks", "Remarques", 'M');
+            Fld(t, "IsLine", "Ligne de production (Y/N)", 'A', 1);
 
             // ---- Catégories d'équipement ------------------------------------
             Table(Db.EqCat, "Maint. - Catégories équipement", BoUTBTableType.bott_MasterData);
@@ -134,6 +137,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "AnnEst", "Estimation annuelle", 'F');
             Fld(t, "MinVal", "Limite basse", 'F');
             Fld(t, "MaxVal", "Limite haute", 'F');
+            Fld(t, "ProdCnt", "Compté par la production (Y/N)", 'A', 1);
 
             // ---- Gammes (IA05) ----------------------------------------------
             Table(Db.TaskList, "Maint. - Gammes", BoUTBTableType.bott_MasterData);
@@ -208,6 +212,9 @@ namespace MaintenanceAddon.Setup
             Fld(t, "Point", "Point de mesure", 'A', 20);
             Fld(t, "UnderWar", "Sous garantie (Y/N)", 'A', 1);
             Fld(t, "Contract", "Contrat de maintenance", 'A', 50);
+            Fld(t, "ProdOrd", "Ordre de fabrication (DocEntry)", 'N', 11);
+            Fld(t, "LineStop", "Ligne de production arrêtée", 'A', 1);
+            Fld(t, "LostQty", "Quantité de production perdue", 'Q');
 
             // ---- Ordres (IW31) -----------------------------------------------
             Table(Db.Order, "Maint. - Ordres", BoUTBTableType.bott_Document);
@@ -246,6 +253,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "SettJE", "Écriture de règlement", 'N', 11);
             Fld(t, "SettAmt", "Montant réglé", 'S');
             Fld(t, "Safety", "Consignes de sécurité", 'M');
+            Fld(t, "ProdOrd", "Ordre de fabrication (DocEntry)", 'N', 11);
 
             Table(Db.OrderOps, "Maint. - Opérations d'ordre", BoUTBTableType.bott_DocumentLines);
             OperationFields("@" + Db.OrderOps, true);
@@ -283,6 +291,7 @@ namespace MaintenanceAddon.Setup
             Fld(t, "Remarks", "Commentaire", 'A', 200);
             Fld(t, "User", "Utilisateur SAP", 'A', 25);
             Fld(t, "NotifNo", "Avis créé (DocEntry)", 'N', 11);
+            Fld(t, "SrcDoc", "Entrée de production (clé ligne)", 'N', 11);
 
             // ---- Appels des plans (IP30) ------------------------------------
             Table(Db.Call, "Maint. - Appels de plans", BoUTBTableType.bott_NoObject);
@@ -382,6 +391,17 @@ namespace MaintenanceAddon.Setup
                 Fld(table, "MNT_Line", "Ligne d'ordre maintenance", 'N', 6);
                 Fld(table, "MNT_Ctr", "Contrat de maintenance", 'A', 50);
             }
+        }
+
+        /// <summary>
+        /// Production : ligne (code du poste technique) de l'ordre de fabrication, et ligne par
+        /// défaut du produit. SAP refuse ici le lien vers l'objet poste technique (erreur -5002) :
+        /// le code saisi est contrôlé par l'add-on à l'enregistrement de l'OF.
+        /// </summary>
+        private static void CreateProductionFields()
+        {
+            Fld("OWOR", "MNT_PLine", "Ligne de production (maint.)", 'A', 50);
+            Fld("OITM", "MNT_PLine", "Ligne de production par défaut", 'A', 50);
         }
 
         // =====================================================================
@@ -768,7 +788,6 @@ namespace MaintenanceAddon.Setup
                 }
                 if (defaultValue != null)
                     md.DefaultValue = defaultValue;
-
                 Report("Création du champ " + tableId + ".U_" + name + "...");
                 DiCompany.ThrowIfError(md.Add(), "Création du champ U_" + name + " sur " + tableId);
                 _changed = true;

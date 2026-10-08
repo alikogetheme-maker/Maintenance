@@ -75,6 +75,12 @@ namespace MaintenanceAddon.Services
         public static MeasurementResult Record(string equip, string point, DateTime date, int timeHhmm, double value, string remarks)
         {
             AuthService.Require(Perm.Exec, "saisir un relevé");
+            return RecordData(equip, point, date, timeHhmm, value, remarks, 0);
+        }
+
+        /// <summary>Relevé sans contrôle d'autorisation (relevés automatiques de la production, srcDoc = ligne d'entrée).</summary>
+        internal static MeasurementResult RecordData(string equip, string point, DateTime date, int timeHhmm, double value, string remarks, long srcDoc)
+        {
             MeasuringPoint mp = Point(equip, point);
             if (mp == null)
                 throw new InvalidOperationException("Point de mesure « " + point + " » introuvable sur l'équipement " + equip + ".");
@@ -111,6 +117,8 @@ namespace MaintenanceAddon.Services
                 f.Item("U_Diff").Value = diff;
                 f.Item("U_Remarks").Value = NotificationService.Truncate(remarks, 200);
                 f.Item("U_User").Value = DiCompany.UserCode;
+                if (srcDoc > 0)
+                    f.Item("U_SrcDoc").Value = checked((int)srcDoc);
                 DiCompany.ThrowIfError(t.Add(), "Enregistrement du relevé");
             }
             finally

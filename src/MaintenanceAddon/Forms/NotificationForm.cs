@@ -99,6 +99,7 @@ namespace MaintenanceAddon.Forms
             AddFolder("fDescr", "Description", x, ft, 110, 1);
             AddFolder("fBrk", "Panne / arrêt", x + 110, ft, 110, 2);
             AddFolder("fCat", "Codes catalogue", x + 220, ft, 120, 3);
+            AddFolder("fProd", "Production", x + 340, ft, 110, 4);
             int top = ft + 25;
             U.Frame("rFrame", x, ft + 19, FormWidth - 30, FormHeight - ft - 110);
 
@@ -124,6 +125,26 @@ namespace MaintenanceAddon.Forms
             AddCatalog("lDam", "Dommage", "cDam", "U_Damage", CatalogTypes.Damage, x + 10, y + Ui.Step);
             AddCatalog("lCau", "Cause", "cCau", "U_Cause", CatalogTypes.Cause, x + 10, y + 2 * Ui.Step);
             AddCatalog("lAct", "Activité réalisée", "cAct", "U_Activity", CatalogTypes.Activity, x + 10, y + 3 * Ui.Step);
+
+            // ---- Production : ordre de fabrication en cours, arrêt de la ligne, perte
+            U.Pane = 4;
+            y = top;
+            // Liste de choix interdite sur un champ numérique : zone texte recopiée dans U_ProdOrd
+            F.DataSources.UserDataSources.Add("udOf", BoDataType.dt_SHORT_TEXT, 11);
+            U.Cfl("cflProd", "202");
+            U.Label("lProd", "Ordre de fabrication", x + 10, y, 150, "eProd");
+            Ui.BindCfl(U.EditUds("eProd", x + 160, y, 90, "udOf"), "cflProd", "DocEntry");
+            RegisterCfl("eProd", null, "", "udOf", "DocEntry");
+            U.LinkStd("kProd", "eProd", BoLinkedObject.lf_ProductionOrder);
+            AddName("udProd", "eProdNm", x + 260, y, 460);
+            y += Ui.Step + 6;
+            U.Check("cLStop", "Ligne de production arrêtée par la panne", x + 10, y, 300, "U_LineStop");
+            y += Ui.Step;
+            U.Field("lLost", "Quantité de production perdue", "eLost", x + 10, y, 150, 90, "U_LostQty");
+            y += Ui.Step + 10;
+            U.Label("lProdI1", "L'ordre de fabrication lancé sur la ligne de l'équipement est proposé automatiquement.", x + 10, y, 600);
+            U.Label("lProdI2", "Ligne arrêtée : la durée de la panne compte comme arrêt de production dans le suivi de l'OF.", x + 10, y + Ui.Step, 600);
+            U.Button("bProdV", "Suivi de l'OF...", x + 10, y + 2 * Ui.Step + 8, 120);
             U.Pane = 0;
 
             U.Button("bOrder", "Créer l'ordre", 150, FormHeight - 62, 110);
@@ -167,6 +188,30 @@ namespace MaintenanceAddon.Forms
             SetH("U_FuncLoc", eq.FuncLoc);
             if (H("U_WorkCtr") == "")
                 SetH("U_WorkCtr", eq.WorkCtr);
+            // Machine d'une ligne de production : OF en cours proposé
+            if (F.Mode == BoFormMode.fm_ADD_MODE && HDbl("U_ProdOrd") == 0)
+            {
+                int of = ProductionService.CurrentOrderForEquipment(eq.Code, HDate("U_RepDate") ?? DateTime.Today);
+                if (of > 0)
+                {
+                    SetH("U_ProdOrd", of);
+                    Msg("Ordre de fabrication en cours sur la ligne : " + ProductionService.Load(of).Label() + " (onglet Production).", BoStatusBarMessageType.smt_Warning);
+                }
+            }
+        }
+
+        /// <summary>Nouvel avis pendant un ordre de fabrication (depuis le suivi de l'OF).</summary>
+        public void NewForProduction(int ofEntry)
+        {
+            ProdOrderInfo of = ProductionService.Load(ofEntry);
+            if (of == null)
+                return;
+            ShowNew(() =>
+            {
+                SetH("U_ProdOrd", ofEntry);
+                if (of.Line != "")
+                    SetH("U_FuncLoc", of.Line);
+            });
         }
 
         protected override void SetDefaults()
@@ -175,6 +220,7 @@ namespace MaintenanceAddon.Forms
             SetH("U_Status", NotifStatus.Outstanding);
             SetH("U_Priority", "3");
             SetH("U_Breakdwn", "N");
+            SetH("U_LineStop", "N");
             SetH("U_RepDate", DateTime.Today);
             SetH("U_RepTime", DateTime.Now.ToString("HHmm", CultureInfo.InvariantCulture));
             SetH("U_ReportBy", DiCompany.UserCode);
@@ -190,8 +236,23 @@ namespace MaintenanceAddon.Forms
             SetH("U_ReqEnd", start.Date.Add(DateTime.Now.TimeOfDay).AddHours(hours).Date);
         }
 
+        /// <summary>N° d'OF saisi dans la zone texte, recopié dans le champ numérique U_ProdOrd.</summary>
+        private void ProdFromScreen()
+        {
+            string text = Uds("udOf").Trim();
+            if (text == "")
+            {
+                // Vide (et non 0) : en mode Recherche, 0 deviendrait un critère
+                SetH("U_ProdOrd", "");
+                return;
+            }
+            int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int of);
+            SetH("U_ProdOrd", of);
+        }
+
         protected override string Validate()
         {
+            ProdFromScreen();
             if (H("U_Equip") == "" && H("U_FuncLoc") == "")
                 return "Indiquez l'équipement ou le poste technique concerné.";
             if (H("U_Equip") != "" && EquipmentInfo.Load(H("U_Equip")) == null)
@@ -211,6 +272,14 @@ namespace MaintenanceAddon.Forms
                 if (en.HasValue && en < st)
                     return "La fin de panne précède son début.";
             }
+
+            int prod = (int)HDbl("U_ProdOrd");
+            if (prod > 0 && ProductionService.Load(prod) == null)
+                return "Ordre de fabrication inconnu : " + prod;
+            if (H("U_LineStop") == "Y" && H("U_Breakdwn") != "Y")
+                return "Ligne arrêtée : cochez aussi « Arrêt de l'équipement » et saisissez le début de panne (onglet Panne / arrêt).";
+            if (HDbl("U_LostQty") < 0)
+                return "La quantité perdue ne peut pas être négative.";
 
             // Garantie / contrat à la date de déclaration, mémorisés sur l'avis
             if (F.Mode == BoFormMode.fm_ADD_MODE)
@@ -250,6 +319,12 @@ namespace MaintenanceAddon.Forms
             else
                 SetUds("udDown", "");
 
+            int ofEntry = (int)HDbl("U_ProdOrd");
+            SetUds("udOf", ofEntry > 0 ? ofEntry.ToString(CultureInfo.InvariantCulture) : "");
+            ProdOrderInfo of = ProductionService.Load(ofEntry);
+            SetUds("udProd", of == null ? "" : of.Label() + " (" + ProdStatus.List.Caption(of.Status).ToLowerInvariant() + ")");
+            Enable("bProdV", of != null);
+
             bool saved = CurrentKey != "";
             string status = H("U_Status");
             int order = (int)HDbl("U_OrderNo");
@@ -268,16 +343,32 @@ namespace MaintenanceAddon.Forms
         {
             if (itemUid == "eMStD" || itemUid == "eMEnD" || itemUid == "eMStT" || itemUid == "eMEnT")
                 Refresh();
+            else if (itemUid == "eProd")
+            {
+                ProdFromScreen();
+                if (F.Mode != BoFormMode.fm_FIND_MODE)
+                    Refresh();
+            }
         }
 
         protected override void OnChosen(string itemUid, string colUid, int row, DataTable selected)
         {
             if (itemUid == "eEq")
                 ApplyEquipment(H("U_Equip"));
+            else if (itemUid == "eProd")
+            {
+                ProdFromScreen();
+                SetModeUpdate();
+            }
         }
 
         protected override void OnButton(string itemUid)
         {
+            if (itemUid == "bProdV")
+            {
+                Navigator.Production.Show((int)HDbl("U_ProdOrd"));
+                return;
+            }
             if ((itemUid != "bOrder" && itemUid != "bDone" && itemUid != "bReopen") || !RequireSaved())
                 return;
             int entry = CurrentDocEntry;

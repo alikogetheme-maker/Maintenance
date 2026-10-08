@@ -45,6 +45,8 @@ namespace MaintenanceAddon.Services
         public string Descr = "";
         /// <summary>Consignes de sécurité (reprises de la gamme).</summary>
         public string Safety = "";
+        /// <summary>Ordre de fabrication pendant lequel l'intervention a lieu (DocEntry), 0 sinon.</summary>
+        public int ProdOrd;
         public string WorkCtr = "";
         public string OcrCode = "";
         public DateTime? Start;
@@ -166,6 +168,8 @@ namespace MaintenanceAddon.Services
             o.Set("U_Subject", NotificationService.Truncate(d.Subject, 100));
             o.Set("U_Descr", d.Descr);
             o.Set("U_Safety", string.IsNullOrEmpty(d.Safety) ? TaskListSafety(d.TaskList) : d.Safety);
+            if (d.ProdOrd > 0)
+                o.Set("U_ProdOrd", d.ProdOrd);
             o.Set("U_WorkCtr", d.WorkCtr);
             o.Set("U_OcrCode", d.OcrCode);
             o.Set("U_Respons", DiCompany.UserCode);

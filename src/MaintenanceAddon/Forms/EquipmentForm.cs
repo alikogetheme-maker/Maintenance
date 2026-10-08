@@ -206,7 +206,7 @@ namespace MaintenanceAddon.Forms
             string pts = "@" + Db.EquipPts;
             U.Col(m, "#", "#", 25, pts, "LineId", false);
             U.Col(m, "cPoint", "Point", 80, pts, "U_Point", true);
-            U.Col(m, "cDescr", "Description", 200, pts, "U_Descr", true);
+            U.Col(m, "cDescr", "Description", 170, pts, "U_Descr", true);
             U.Col(m, "cUnit", "Unité", 60, pts, "U_Unit", true);
             Column cnt = U.Col(m, "cCount", "Compteur", 65, pts, "U_Counter", true, BoFormItemTypes.it_CHECK_BOX);
             cnt.ValOn = "Y";
@@ -214,10 +214,15 @@ namespace MaintenanceAddon.Forms
             U.Col(m, "cAnn", "Estim. annuelle", 90, pts, "U_AnnEst", true);
             U.Col(m, "cMin", "Limite basse", 80, pts, "U_MinVal", true);
             U.Col(m, "cMax", "Limite haute", 80, pts, "U_MaxVal", true);
+            U.Col(m, "cProd", "Par la production", 100, pts, "U_ProdCnt", true, BoFormItemTypes.it_CHECK_BOX);
             U.Button("bPtAdd", "Ajouter une ligne", x + 10, by, 120);
             U.Button("bPtDel", "Supprimer la ligne", x + 135, by, 120);
             U.Button("bReading", "Saisir un relevé...", x + 260, by, 130);
-            RegisterMatrix("mPts", Db.EquipPts, "U_Point", "bPtAdd", "bPtDel", (ds, row) => ds.SetValue("U_Counter", row, "N"));
+            RegisterMatrix("mPts", Db.EquipPts, "U_Point", "bPtAdd", "bPtDel", (ds, row) =>
+            {
+                ds.SetValue("U_Counter", row, "N");
+                ds.SetValue("U_ProdCnt", row, "N");
+            });
 
             // ---- Onglet Historique ------------------------------------------
             U.Pane = 4;
@@ -336,6 +341,8 @@ namespace MaintenanceAddon.Forms
                 double min = Sql.ParseDouble(ds.GetValue("U_MinVal", i)), max = Sql.ParseDouble(ds.GetValue("U_MaxVal", i));
                 if (min != 0 && max != 0 && min > max)
                     return "Point « " + point + " » : la limite basse dépasse la limite haute.";
+                if (ds.GetValue("U_ProdCnt", i).Trim() == "Y" && ds.GetValue("U_Counter", i).Trim() != "Y")
+                    return "Point « " + point + " » : seul un compteur peut être alimenté par la production (cochez « Compteur »).";
             }
             return null;
         }

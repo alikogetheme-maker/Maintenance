@@ -38,6 +38,7 @@ namespace MaintenanceAddon.Core
             Add(app, root, FormIds.MenuOrder, "Ordres de maintenance", false);
             Add(app, root, FormIds.MenuMeasure, "Relevés de compteurs et mesures", false);
             Add(app, root, FormIds.MenuShip, "Envoi / retour chez un prestataire", false);
+            Add(app, root, FormIds.MenuProd, "Maintenance de la production (par OF)", false);
 
             MenuItem prev = Add(app, root, FormIds.MenuPreventive, "Maintenance préventive", true);
             Add(app, prev, FormIds.MenuPlan, "Plans de maintenance", false);

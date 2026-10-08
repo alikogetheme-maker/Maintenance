@@ -183,17 +183,53 @@ namespace MaintenanceAddon.Core
             {
                 prefill();
                 SafeRefresh();
+                _addBaseline = LinesSnapshot();
             }
         }
 
+        /// <summary>État des lignes juste après l'initialisation de la création (valeurs par défaut, lignes modèles).</summary>
+        private string _addBaseline;
+
         private bool IsDirtyAdd()
         {
-            // En création, on considère qu'il y a une saisie dès qu'une ligne existe
-            // (lignes affichées : la source garde un enregistrement vide en création)
+            // En création, il y a une saisie si les lignes ont changé depuis l'initialisation
+            // (les lignes modèles proposées par l'écran ne comptent pas comme une saisie)
+            string now = LinesSnapshot();
+            if (_addBaseline != null && now != null)
+                return now != _addBaseline;
             foreach (MatrixInfo mi in _matrices)
                 if (Mat(mi.ItemId).RowCount > 0)
                     return true;
             return false;
+        }
+
+        /// <summary>Contenu des lignes affichées de toutes les matrices, null en cas d'erreur.</summary>
+        private string LinesSnapshot()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                foreach (MatrixInfo mi in _matrices)
+                {
+                    Matrix m = Mat(mi.ItemId);
+                    m.FlushToDataSource();
+                    DBDataSource ds = Lines(mi.Table);
+                    sb.Append(mi.ItemId).Append('#').Append(m.RowCount).Append('\n');
+                    // La source garde un enregistrement vide non affiché en création : seules les lignes affichées comptent
+                    for (int i = 0; i < ds.Size && i < m.RowCount; i++)
+                    {
+                        for (int j = 0; j < ds.Fields.Count; j++)
+                            sb.Append(ds.GetValue(ds.Fields.Item(j).Name, i).Trim()).Append('\t');
+                        sb.Append('\n');
+                    }
+                }
+                return sb.ToString();
+            }
+            catch (Exception ex)
+            {
+                Program.Log(FormType + " LinesSnapshot : " + ex.Message);
+                return null;
+            }
         }
 
         private void Create()
@@ -272,6 +308,7 @@ namespace MaintenanceAddon.Core
             }
             SetDefaults();
             SafeRefresh();
+            _addBaseline = LinesSnapshot();
         }
 
         /// <summary>Série par défaut de l'objet et prochain numéro (documents).</summary>
@@ -729,6 +766,7 @@ namespace MaintenanceAddon.Core
                 {
                     SetDefaults();
                     SafeRefresh();
+                    _addBaseline = LinesSnapshot();
                 }
             }
 

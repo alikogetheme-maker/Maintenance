@@ -81,9 +81,13 @@ namespace MaintenanceAddon
                                 "Complétez ensuite Maintenance → Paramètres (comptes de charges).");
             _app.StatusBar.SetText("Add-on Maintenance démarré.", BoMessageTime.bmt_Short, BoStatusBarMessageType.smt_Success);
 
-            // Alertes du jour (une fois par jour, au premier démarrage) : ne bloque jamais l'add-on
+            // Compteurs des machines alimentés par la production, puis alertes du jour
+            // (une fois par jour, au premier démarrage) : ne bloque jamais l'add-on
             try
             {
+                int counted = Services.ProductionService.SyncCounters();
+                if (counted > 0)
+                    Log(counted + " relevé(s) de compteur créé(s) depuis les entrées de production");
                 int message = Services.AlertService.SendDaily(DateTime.Today, false);
                 if (message > 0)
                     Log("Alertes du jour envoyées (message " + message + ")");
@@ -112,6 +116,8 @@ namespace MaintenanceAddon
             Navigator.Measurement = new MeasurementForm(app);
             Navigator.Serials = new SerialPickerForm(app);
             Navigator.Spares = new SparePartsForm(app);
+            Navigator.Production = new ProductionViewForm(app);
+            ProductionOrderHook.Register(app);
             Navigator.Scheduling = _scheduling = new SchedulingForm(app);
             Navigator.Lists = _lists = new ListForm(app);
             Navigator.Settings = _settings = new SettingsForm(app);
@@ -203,6 +209,7 @@ namespace MaintenanceAddon
                     case FormIds.MenuEqCat: Navigator.OpenDefaultForm(Obj.EqCat); break;
                     case FormIds.MenuContract: Navigator.Show(Obj.Contract); break;
                     case FormIds.MenuShip: Navigator.Shipment.Show(null, 0, null); break;
+                    case FormIds.MenuProd: Navigator.Production.Show(0); break;
                     case FormIds.MenuNotif: Navigator.Show(Obj.Notif); break;
                     case FormIds.MenuOrder: Navigator.Show(Obj.Order); break;
                     case FormIds.MenuMeasure: Navigator.Measurement.Show(null, null); break;

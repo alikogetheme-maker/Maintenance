@@ -62,6 +62,10 @@ namespace MaintenanceAddon.Forms
         private void Refresh()
         {
             DateTime horizon = Sql.ParseDate(Uds("udHor")) ?? DateTime.Today;
+            // Compteurs alimentés par la production : à jour avant de calculer les échéances
+            int counted = ProductionService.SyncCounters();
+            if (counted > 0)
+                Msg(counted + " relevé(s) de compteur créé(s) depuis les entrées de production.");
             _rows = PlanService.Overview(horizon);
             _selected = -1;
 

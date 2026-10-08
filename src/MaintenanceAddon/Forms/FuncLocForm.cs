@@ -59,6 +59,7 @@ namespace MaintenanceAddon.Forms
             RegisterCfl("eWhs", null, "@" + Db.FuncLoc, "U_Whs", "WhsCode");
             U.LinkStd("kWhs", "eWhs", BoLinkedObject.lf_Warehouses);
             U.Check("cActive", "Actif", x + lw + 140, y, 100, "U_Active");
+            U.Check("cLine", "Ligne de production", x + lw + 245, y, 160, "U_IsLine");
             y += Ui.Step + 4;
 
             U.Label("lRem", "Remarques", x, y, lw, "eRem");
@@ -75,6 +76,7 @@ namespace MaintenanceAddon.Forms
         protected override void SetDefaults()
         {
             SetH("U_Active", "Y");
+            SetH("U_IsLine", "N");
         }
 
         protected override string Validate()

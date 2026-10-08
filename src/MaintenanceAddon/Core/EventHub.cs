@@ -18,6 +18,8 @@ namespace MaintenanceAddon.Core
         private static readonly Dictionary<string, ItemHandler> Items = new Dictionary<string, ItemHandler>();
         private static readonly Dictionary<string, DataHandler> Data = new Dictionary<string, DataHandler>();
         private static readonly List<MenuHandler> Menus = new List<MenuHandler>();
+        // Écrans standard de SAP (identifiant variable) : aiguillage par type d'écran
+        private static readonly Dictionary<string, ItemHandler> TypeItems = new Dictionary<string, ItemHandler>();
         private static Application _app;
 
         public static void RegisterForm(Application app, string formType, ItemHandler item, DataHandler data = null)
@@ -26,6 +28,13 @@ namespace MaintenanceAddon.Core
             Items[formType] = item;
             if (data != null)
                 Data[formType] = data;
+        }
+
+        /// <summary>Événements d'un écran standard SAP, quel que soit son identifiant (ex. "65211" ordre de fabrication).</summary>
+        public static void RegisterFormType(Application app, string formTypeEx, ItemHandler item)
+        {
+            Attach(app);
+            TypeItems[formTypeEx] = item;
         }
 
         public static void RegisterMenu(Application app, MenuHandler handler)
@@ -49,6 +58,8 @@ namespace MaintenanceAddon.Core
             bubbleEvent = true;
             if (Items.TryGetValue(formUID, out ItemHandler h))
                 h(formUID, ref pVal, out bubbleEvent);
+            else if (TypeItems.Count > 0 && TypeItems.TryGetValue(pVal.FormTypeEx, out ItemHandler t))
+                t(formUID, ref pVal, out bubbleEvent);
         }
 
         private static void OnData(ref BusinessObjectInfo info, out bool bubbleEvent)

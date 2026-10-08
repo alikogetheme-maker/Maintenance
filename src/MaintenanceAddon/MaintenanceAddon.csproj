@@ -64,6 +64,8 @@
     <Compile Include="Services\AttachmentService.cs" />
     <Compile Include="Services\AlertService.cs" />
     <Compile Include="Services\WorkOrderPrint.cs" />
+    <Compile Include="Services\ProductionService.cs" />
+    <Compile Include="Forms\ProductionViewForm.cs" />
     <Compile Include="Forms\ContractForm.cs" />
     <Compile Include="Forms\SerialPickerForm.cs" />
     <Compile Include="Forms\SparePartsForm.cs" />

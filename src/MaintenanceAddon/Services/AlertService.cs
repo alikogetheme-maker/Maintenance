@@ -99,6 +99,9 @@ namespace MaintenanceAddon.Services
             if (n.Str("U_FuncLoc") != "")
                 text.AppendLine("Poste technique : " + n.Str("U_FuncLoc") + " - " + NotificationService.NameOf(Db.FuncLoc, n.Str("U_FuncLoc")));
             text.AppendLine("Description : " + n.Str("U_Subject"));
+            ProdOrderInfo of = ProductionService.Load(n.Int("U_ProdOrd"));
+            if (of != null)
+                text.AppendLine("Production : " + of.Label() + (n.Str("U_LineStop") == "Y" ? " - LIGNE DE PRODUCTION ARRÊTÉE" : ""));
             ServiceContext ctx = n.Str("U_Equip") == "" ? null : ServiceContext.For(n.Str("U_Equip"), DateTime.Today, OrderTypes.Corrective);
             if (ctx != null && ctx.Banner() != "")
                 text.AppendLine(ctx.Banner());
